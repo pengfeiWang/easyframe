@@ -1,0 +1,15 @@
+{
+  "name": "easyframe",
+  "author": "pengfeiWang",
+  "version": "0.1.1",
+  "description": "",
+  "main": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "license": "MIT",
+  "devDependencies": {
+  	"grunt-cmd-concat": "0.4.0",
+  	"grunt-banner": "0.2.3"
+  }
+}
