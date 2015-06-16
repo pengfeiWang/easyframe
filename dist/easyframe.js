@@ -1,7 +1,7 @@
 /*! ============================================= 
     project: easyframe  
     version: 0.1.1 
-    update: 2015-06-12 
+    update: 2015-06-16 
     author: pengfeiWang 
 ==================================================  */
 ;(function ( window, factory ) {
@@ -34,6 +34,7 @@ var rword = /[^, ]+/g,
 	slice        = emptyArray.slice,
 	splice       = emptyArray.splice,
 	concat       = emptyArray.concat;
+	function noop() {}
 	/**
 	 * [regWordBorder 单词边距正则]
 	 * @param  string
@@ -72,16 +73,32 @@ var rword = /[^, ]+/g,
 		}
 		return prefix;
 	})();
-
 // 缓存系统
+
 var globalCache = {
-	eventCache   : {},
-	guid         : 1,
-	sName        : '__eventCache',
+	
+	guid: {
+		__eventCache  : 1,
+		__animateCache: 1,
+		__dataCache   : 1
+	},
+	//事件缓存前置
+	eventName  : '__eventCache',
+	//动画缓存前置
+	animateName: '__animateCache',
+	//data缓存前置
+	dateName   : '__dataCache',
+	//缓存对象
+	eventCache  : {},
+	animateCache: {},
+	dataCache   : {},
+	//
 	elemOldStatus: {},
-	dataCache    : {},
-	getGid       : function ( elem ) {
-		return elem[ '__$gid' + globalCache.sName ] || ( elem[ '__$gid' + globalCache.sName ] = globalCache.guid++ )
+	getGid       : function ( elem, typeName ) {
+
+		typeName = typeName || globalCache[ 'eventName' ];
+
+		return elem[ '__$gid' + typeName ] || ( elem[ '__$gid' + typeName ] = globalCache.guid[ typeName ]++ );
 	}
 };
 var class2type = {};
@@ -125,6 +142,32 @@ if (!'string'.trim) {
         return this.replace(rtrim, "")
     }
 }
+
+;(function() {
+	var lastTime = 0;
+	var vendors = ['ms', 'moz', 'webkit', 'o'];
+	for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+		window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
+		window.cancelAnimationFrame = window[vendors[x] + 'CancelAnimationFrame'] || 
+									  window[vendors[x] + 'CancelRequestAnimationFrame'];
+	}
+	if (!window.requestAnimationFrame) {
+		window.requestAnimationFrame = function(callback, element) {
+			var currTime = new Date().getTime();
+			var timeToCall = Math.max(0, 16.7 - (currTime - lastTime));
+			var id = window.setTimeout(function() {
+				callback(currTime + timeToCall);
+			}, timeToCall);
+			lastTime = currTime + timeToCall;
+			return id;
+		}
+	}
+	if (!window.cancelAnimationFrame) {
+		window.cancelAnimationFrame = function(id) {
+			clearTimeout(id);
+		}
+	}
+}());
 /**
  * 数组去重
  * @param  arr [ Array ]
@@ -484,21 +527,59 @@ var _css = (function () {
 	 * @return 
 	 */
 	var setStyle = function ( obj, attr, value ) {
-		if( attr === 'opacity' && !window.getComputedStyle ) {
-			setOpacity(obj, value);
+		if( attr === 'opacity' ) {
+			if( window.getComputedStyle ) {
+				obj.style[attr] = value
+			} else {
+				setOpacity(obj, value);
+			}
+			
 		} else {
 			obj.style[attr] = addPx(attr, value);
 		}
 	};
 	var rGet = /^(opacity|outerWidth|outerHeight)$/;
+
+	var ret, style;
+	var addPx = function ( attr, val ) {
+		return (typeof(val) === 'number') && !cssNumber[ attr.toLowerCase() ] ? val + 'px' : val;
+	};
+
+	function getOpacity ( node ) {
+		//这是最快的获取IE透明值的方式，不需要动用正则了！
+		var alpha = node.filters.alpha || node.filters[salpha],
+			op = alpha && alpha.enabled ? alpha.opacity : 100
+		return (op / 100) + '' //确保返回的是字符串
+	};
+	function setOpacity ( node, val ) {
+		var style = node.style
+		var opacity = isFinite(val) && val <= 1 ? 'alpha(opacity=' + val * 100 + ')' : ''
+		var filter = style.filter || '';
+		style.zoom = 1;
+		style.filter = (ralpha.test(filter) ?
+			filter.replace(ralpha, opacity) :
+			filter + ' ' + opacity).trim()
+		if (!style.filter) {
+			style.removeAttribute('filter');
+		}
+	};
+	var rnumnonpx = /^-?(?:\d*\.)?\d+(?!px)[^\d\s]+$/i
+	var rposition = /^(top|right|bottom|left)$/
+	var ralpha = /alpha\([^)]*\)/i
+	var ie8 = !! window.XDomainRequest
+	var salpha = 'DXImageTransform.Microsoft.Alpha';
+	var border = {
+		thin: ie8 ? '1px' : '2px',
+		medium: ie8 ? '3px' : '4px',
+		thick: ie8 ? '5px' : '6px'
+	}
 	var getMaps = {
 		opacity:  getOpacity,
 		outerWidth: outerWidth,
 		outerHeight: outerHeight
 	}
-	var getStyle, getOpacity, setOpacity, ret, style;
-	if (window.getComputedStyle) {
-		getStyle = function ( obj, attr ) {
+	function getStyle ( obj, attr ) {
+		if( window.getComputedStyle ) {
 			style = getComputedStyle(obj, null);
 			if (style) {
 				ret = attr === 'filter' ? style.getPropertyValue(attr) : style[attr]
@@ -507,19 +588,7 @@ var _css = (function () {
 				}
 			}
 			return ret
-		}
-	} else {
-		var rnumnonpx = /^-?(?:\d*\.)?\d+(?!px)[^\d\s]+$/i
-		var rposition = /^(top|right|bottom|left)$/
-		var ralpha = /alpha\([^)]*\)/i
-		var ie8 = !! window.XDomainRequest
-		var salpha = 'DXImageTransform.Microsoft.Alpha';
-		var border = {
-			thin: ie8 ? '1px' : '2px',
-			medium: ie8 ? '3px' : '4px',
-			thick: ie8 ? '5px' : '6px'
-		}
-		getStyle = function ( obj, attr ) {
+		} else {
 			if( rGet.test(attr) ) {
 				return getMaps[attr](obj);
 			}
@@ -554,30 +623,11 @@ var _css = (function () {
 				ret = getMaps['outer' + firstUpperCase(attr) ](obj)
 			} 
 
-			return  border[ret] || ret;
-		};
-		getOpacity = function( node ) {
-			//这是最快的获取IE透明值的方式，不需要动用正则了！
-			var alpha = node.filters.alpha || node.filters[salpha],
-				op = alpha && alpha.enabled ? alpha.opacity : 100
-			return (op / 100) + '' //确保返回的是字符串
-		};
-		setOpacity = function ( node, val ) {
-			var style = node.style
-			var opacity = isFinite(val) && val <= 1 ? 'alpha(opacity=' + val * 100 + ')' : ''
-			var filter = style.filter || '';
-			style.zoom = 1;
-			style.filter = (ralpha.test(filter) ?
-				filter.replace(ralpha, opacity) :
-				filter + ' ' + opacity).trim()
-			if (!style.filter) {
-				style.removeAttribute('filter');
-			}
-		};
+			return  border[ret] || ret;				
+		}
 	}
-	var addPx = function ( attr, val ) {
-		return (typeof(val) === 'number') && !cssNumber[ attr.toLowerCase() ] ? val + 'px' : val;
-	};
+	
+
 
 	/**
 	 * 设置 获取 css 样式
@@ -593,25 +643,34 @@ var _css = (function () {
 		// 先做 是否css3属性验证;
 		var prop;
 		var i;
-		if( value ) {
+		// typeof ops === 'string'
+		// value 目标值
+		// 设置
+		if(typeof ops === 'string' && value ) {
 
 			setStyle(elem, cssName(ops), value);
 			return elem;
 		}
-		if( ops ) { //设置
+
+		if( ops ) { //设置 || 获取
 			if( typeof ops === 'string' ) { // ops如果是字符串把它当成要获取的属性
 				return getStyle(elem, cssName(ops));
 			}
+			// 设置属性值
 			for( i in ops ) {
 				setStyle(elem, cssName(i), ops[i]);
 			}
 			return elem;
-		} else { //获取
-			return getStyle(elem, cssName(ops));
-		}
+		} 
+		//else { //获取
+			// return getStyle(elem, cssName(ops));
+		// }
+		console.log( 'css---' )
 		return elem;
 	}
 })();
+
+//事件系统
 
 /*======================
  event	data
@@ -677,7 +736,7 @@ function _on ( obj, ev, fn, capture, one ) {
 	if ( arguments.length < 3 ) return;
 	//用空格 间隔 事件
 	ev = ev.match(rword);
-	var id = globalCache.getGid(obj, one),
+	var id = globalCache.getGid(obj, 'eventName'),
 	    i = 0,
 	    len = ev.length;
 	// 获取事件缓存, 如果不存在则创建
@@ -1021,6 +1080,347 @@ var _getField = (function () {
 		return param( _getField( obj ) );
 	}
 }());
+;var _ajax = (function () {
+	return function ( obj ) {
+		var timerID = null, timeIsOut = false;
+		var ops = _extend({}, {
+			type     : 'POST',
+			url      : '',
+			dataType : 'JSON',
+			data     : {},
+			timeout  : 0,
+			success  : function () {},
+			error    : function () {}
+		}, obj);
+
+
+		if( !ops.url ) return;
+		if ( typeof ops.dataType !== 'string' ) {
+			ops.dataType = 'json'
+		}
+		var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP') ;
+
+		xhr.onreadystatechange = function () {
+			var json;
+			if( xhr.readyState == 4 && !timeIsOut && xhr.status == 200 ) {
+
+				var responseText = xhr.responseText;
+
+				if( /json/i.test( ops.dataType ) ) {
+					try {
+						json = JSON.parse(responseText);
+					} catch ( e ) {
+						new Error( e );
+					}
+
+					ops.success( json );
+				} else {
+					ops.success( responseText );
+				}
+			} else {
+				ops.error( xhr )
+			}
+		}
+		ops.data = _isEmptyObject( ops.data ) ? '' : _serialize( ops.data ) ;
+
+		//超时检测
+		ops.timeout = typeof ops.timeout === 'boolean' ? ( ops.timeout === true ? 5000 : false) : (typeof ops.timeout === 'string' || typeof ops.timeout === 'number' ? ( parseInt(ops.timeout, 10) == 0 || parseInt(ops.timeout, 10) <= 5000 ? false : parseInt(ops.timeout, 10) ) : parseInt(ops.timeout, 10) );
+		if( !!ops.timeout ) {
+			timerID = setTimeout(function() {
+				if ( xhr.readyState != 4 ) {
+					timeIsOut = true;
+					xhr.abort();
+					var confirmBol = confirm('请求超时\n点击确定自动刷新本页\n点击取消手动刷新')
+					if( confirmBol ) {
+						window.location.reload();
+					}
+					clearTimeout(timerID);
+				}
+			}, ops.timeout );
+		}
+
+		if ( /post/i.test( ops.type ) ) {
+			xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+			xhr.send( ops.data );
+		} else {
+			xhr.send( null );
+		}
+	}
+}());
+
+;var _post = (function () {
+	return function ( url, data, callback, dataType ) {
+		var ops = {};
+			ops.url = url;
+			ops.data = data;
+			ops.success = callback
+			ops.type = 'post';
+			ops.dataType = dataType
+
+		if( _isFunction( data )  ) {
+			ops.success = data;
+			ops.data = ''
+		}
+		if ( typeof callback === 'string' && _isFunction( data ) ) {
+			ops.dataType = callback
+		}
+		_ajax( ops );
+	}
+} ());
+;var _get = (function () {
+	return function ( url, data, callback, dataType ) {
+		var ops = {};
+			ops.url = url;
+			ops.data = data;
+			ops.success = callback;
+			ops.type = 'get';
+			ops.dataType = dataType;
+
+		if( _isFunction( data ) ) {
+			ops.success = data;
+			ops.data = ''
+		}
+		if ( typeof callback === 'string' && _isFunction( data ) ) {
+			ops.dataType = callback
+		}
+		_ajax( ops );
+	}
+} ());
+;var _animate = (function (){
+	var Tween = {
+		//匀速
+		linear: function(t, b, c, d) {
+			return c * t / d + b;
+		},
+		//加速曲线
+		easeIn: function(t, b, c, d) {
+
+			return c * (t /= d) * t + b;
+		},
+		//减速曲线
+		easeOut: function(t, b, c, d) {
+			return -c * (t /= d) * (t - 2) + b;
+		},
+		//加速减速曲线
+		easeBoth: function(t, b, c, d) {
+			if ((t /= d / 2) < 1) {
+				return c / 2 * t * t + b;
+			}
+			return -c / 2 * ((--t) * (t - 2) - 1) + b;
+		},
+		//加加速曲线
+		easeInStrong: function(t, b, c, d) {
+			return c * (t /= d) * t * t * t + b;
+		},
+		//减减速曲线
+		easeOutStrong: function(t, b, c, d) {
+			return -c * ((t = t / d - 1) * t * t * t - 1) + b;
+		},
+		//加加速减减速曲线
+		easeBothStrong: function(t, b, c, d) {
+			if ((t /= d / 2) < 1) {
+				return c / 2 * t * t * t * t + b;
+			}
+			return -c / 2 * ((t -= 2) * t * t * t - 2) + b;
+		},
+		//正弦衰减曲线（弹动渐入）
+		elasticIn: function(t, b, c, d, a, p) {
+			if (t === 0) {
+				return b;
+			}
+			if ((t /= d) == 1) {
+				return b + c;
+			}
+			if (!p) {
+				p = d * 0.3;
+			}
+			if (!a || a < Math.abs(c)) {
+				a = c;
+				var s = p / 4;
+			} else {
+				var s = p / (2 * Math.PI) * Math.asin(c / a);
+			}
+			return -(a * Math.pow(2, 10 * (t -= 1)) * Math.sin((t * d - s) * (2 * Math.PI) / p)) + b;
+		},
+		//正弦增强曲线（弹动渐出）
+		elasticOut: function(t, b, c, d, a, p) {
+			if (t === 0) {
+				return b;
+			}
+			if ((t /= d) == 1) {
+				return b + c;
+			}
+			if (!p) {
+				p = d * 0.3;
+			}
+			if (!a || a < Math.abs(c)) {
+				a = c;
+				var s = p / 4;
+			} else {
+				var s = p / (2 * Math.PI) * Math.asin(c / a);
+			}
+			return a * Math.pow(2, -10 * t) * Math.sin((t * d - s) * (2 * Math.PI) / p) + c + b;
+		},
+		elasticBoth: function(t, b, c, d, a, p) {
+			if (t === 0) {
+				return b;
+			}
+			if ((t /= d / 2) == 2) {
+				return b + c;
+			}
+			if (!p) {
+				p = d * (0.3 * 1.5);
+			}
+			if (!a || a < Math.abs(c)) {
+				a = c;
+				var s = p / 4;
+			} else {
+				var s = p / (2 * Math.PI) * Math.asin(c / a);
+			}
+			if (t < 1) {
+				return -0.5 * (a * Math.pow(2, 10 * (t -= 1)) *
+					Math.sin((t * d - s) * (2 * Math.PI) / p)) + b;
+			}
+			return a * Math.pow(2, -10 * (t -= 1)) *
+				Math.sin((t * d - s) * (2 * Math.PI) / p) * 0.5 + c + b;
+		},
+		//回退加速（回退渐入）
+		backIn: function(t, b, c, d, s) {
+			if (typeof s == 'undefined') {
+				s = 1.70158;
+			}
+			return c * (t /= d) * t * ((s + 1) * t - s) + b;
+		},
+		backOut: function(t, b, c, d, s) {
+			if (typeof s == 'undefined') {
+				s = 3.70158;
+				//回缩的距离
+			}
+			return c * ((t = t / d - 1) * t * ((s + 1) * t + s) + 1) + b;
+		},
+		backBoth: function(t, b, c, d, s) {
+			if (typeof s == 'undefined') {
+				s = 1.70158;
+			}
+			if ((t /= d / 2) < 1) {
+				return c / 2 * (t * t * (((s *= (1.525)) + 1) * t - s)) + b;
+			}
+			return c / 2 * ((t -= 2) * t * (((s *= (1.525)) + 1) * t + s) + 2) + b;
+		},
+		//弹球减振（弹球渐出）
+		bounceIn: function(t, b, c, d) {
+			return c - Tween['bounceOut'](d - t, 0, c, d) + b;
+		},
+		bounceOut: function(t, b, c, d) {
+			if ((t /= d) < (1 / 2.75)) {
+				return c * (7.5625 * t * t) + b;
+			} else if (t < (2 / 2.75)) {
+				return c * (7.5625 * (t -= (1.5 / 2.75)) * t + 0.75) + b;
+			} else if (t < (2.5 / 2.75)) {
+				return c * (7.5625 * (t -= (2.25 / 2.75)) * t + 0.9375) + b;
+			}
+			return c * (7.5625 * (t -= (2.625 / 2.75)) * t + 0.984375) + b;
+		},
+		bounceBoth: function(t, b, c, d) {
+			if (t < d / 2) {
+				return Tween['bounceIn'](t * 2, 0, c, d) * 0.5 + b;
+			}
+			return Tween['bounceOut'](t * 2 - d, 0, c, d) * 0.5 + c * 0.5 + b;
+		}
+	}
+
+
+	var createTime = function(){
+		return  (+new Date)
+	}
+	var duration = 200;
+	return function ( obj, ops, time, easing, fn ) {
+		if( !obj || !ops ) return;
+
+		if( !time && _isFunction( easing ) ) {
+			fn = easing;
+			time = duration;
+			easing = 'linear';
+		}
+		if( _isFunction( easing ) ) {
+			fn = easing;
+			easing = 'linear'
+		}
+		if( !time ) {
+			time = duration
+		}
+		if( !easing ) {
+			easing = 'linear'
+		}
+		time = parseInt( time );
+		fn = fn || noop;
+
+		var id = globalCache.getGid(obj, 'animateName');
+		var set = globalCache.animateCache[ id ] = globalCache.animateCache[ id ] ? 
+					globalCache.animateCache[ id ] : {};
+		//动画开始时间
+		var startTime = createTime();
+		var animatePre = '' + startTime;		
+		set[ animatePre ] = {
+			timerId: null,
+			status: false
+		}
+		// 缓存格式, 利用时间戳来做判断依据		
+		// animateCache = {
+		// 	startTime: {
+		// 		timerId: null,
+		//  	status: false  执行过程中设为ture
+		// 	}
+		// }
+		
+		// console.log( set )
+		
+		function tick () {
+			//每次变化的时间 初始时间 + 预设时间 - 当前时间
+			var changTime = time - Math.max(0, startTime + time - createTime());
+			var value;
+			set[ animatePre ].status = true;
+			for( var i in ops ) {
+				value = Tween[ easing ]( changTime, tmpJson[ i ], parseFloat(ops[ i ]) - tmpJson[ i ], time );
+				_css( obj, i, parseFloat(value) )
+			}
+			if( changTime < time ) {
+				requestAnimationFrame( tick );
+			} else {
+				cancelAnimationFrame( set[ animatePre ].timerId );
+				
+				set[ animatePre ].status = false;
+				fn&&fn.call(obj);
+
+				// 动画执行结束删除缓存
+				delete set[ animatePre ];
+			}
+		}
+		var i, tmpJson = {};
+		cancelAnimationFrame( set[ animatePre ].timerId )
+		for( i in ops ) {
+			tmpJson[ i ] = parseFloat( _css( obj, i ) );
+		}
+		set[ animatePre ].timerId = requestAnimationFrame( tick );
+
+		return obj;
+	}
+}());
+
+var _stop = (function () {
+	return function ( obj ) {
+		var id = globalCache.getGid(obj, 'animateName');
+		var set = globalCache.animateCache[ id ];
+		var i;
+		for( var i in set ) {
+			if( set[ i ].status === true ) {
+				cancelAnimationFrame( set[ i ].timerId );
+				delete set[ i ];
+			}
+		}
+	}
+});
+
 utils =  {
 	globalCache : globalCache
 	,browser       : _browser
@@ -1049,6 +1449,7 @@ utils =  {
 	,ajax          : _ajax
 	,post          : _post
 	,get           : _get
+	,animate       : _animate
 }
 window.utils = utils;
 return utils;

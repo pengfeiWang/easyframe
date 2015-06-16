@@ -1,3 +1,5 @@
+//事件系统
+
 /*======================
  event	data
  ======================*/
@@ -62,7 +64,7 @@ function _on ( obj, ev, fn, capture, one ) {
 	if ( arguments.length < 3 ) return;
 	//用空格 间隔 事件
 	ev = ev.match(rword);
-	var id = globalCache.getGid(obj, one),
+	var id = globalCache.getGid(obj, 'eventName'),
 	    i = 0,
 	    len = ev.length;
 	// 获取事件缓存, 如果不存在则创建

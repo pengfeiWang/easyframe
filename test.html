@@ -17,7 +17,7 @@ aa
 aa2
 </div>
 
-<div id="ttt">
+<div id="ttt" style="filter:alpha(opacity:70);opacity:0.7; background: #000">
 	<input type="text" name="a1">
 	<input type="text" name="a2">
 	<input type="radio" name="a3">
@@ -46,9 +46,11 @@ aa2
 
 <script src="dist/easyframe.js" id="seajsnode"></script>
 <script type="text/javascript">
-var frm = document.getElementById('ttt2');
+var frm = document.getElementById('ttt');
 
-	console.log( utils.serialize( { a:1,b:2} ) )
+utils.animate(frm, {
+	width:'200px'
+})
 </script>
 </body>
 </html>

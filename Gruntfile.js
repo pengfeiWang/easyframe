@@ -27,28 +27,41 @@ module.exports = function (grunt) {
 		},
 		concat: {
 			"easyframe": {
-				
 				files: {
-
-
 					"./dist/<%= pkg.name %>.js": [
 						'src/open.js'
+						//正则
 						,'src/core/regexp.js'
-						,'src/core/object.js'
+						//缓存
+						,'src/core/cache.js'
 						,'src/core/class2type.js'
+						//原型扩展方法
 						,'src/core/sys_ext_method.js'
+						//数组去重
 						,'src/core/arrunique.js'
+						//各种判断函数
 						,'src/core/is.js'
+						//扩展方法
 						,'src/core/extend.js'
+						//循环
 						,'src/core/each.js'
-
+						//userAgent
 						,'src/browser/browser.js'
+						//选择器
 						,'src/selector/selector.js'
+						//class
 						,'src/class/class.js'
+						//css
 						,'src/css/css.js'
+						//事件系统
 						,'src/event/event.js'
+						//ajax
 						,'src/ajax/get_field.js'
 						,'src/ajax/serialize.js'
+						,'src/ajax/ajax.js'
+						//动画系统
+						,'src/animate/animate.js'
+						//对外api
 						,'src/api.js'
 						,'src/close.js'
 					]

@@ -57,21 +57,59 @@ var _css = (function () {
 	 * @return 
 	 */
 	var setStyle = function ( obj, attr, value ) {
-		if( attr === 'opacity' && !window.getComputedStyle ) {
-			setOpacity(obj, value);
+		if( attr === 'opacity' ) {
+			if( window.getComputedStyle ) {
+				obj.style[attr] = value
+			} else {
+				setOpacity(obj, value);
+			}
+			
 		} else {
 			obj.style[attr] = addPx(attr, value);
 		}
 	};
 	var rGet = /^(opacity|outerWidth|outerHeight)$/;
+
+	var ret, style;
+	var addPx = function ( attr, val ) {
+		return (typeof(val) === 'number') && !cssNumber[ attr.toLowerCase() ] ? val + 'px' : val;
+	};
+
+	function getOpacity ( node ) {
+		//这是最快的获取IE透明值的方式，不需要动用正则了！
+		var alpha = node.filters.alpha || node.filters[salpha],
+			op = alpha && alpha.enabled ? alpha.opacity : 100
+		return (op / 100) + '' //确保返回的是字符串
+	};
+	function setOpacity ( node, val ) {
+		var style = node.style
+		var opacity = isFinite(val) && val <= 1 ? 'alpha(opacity=' + val * 100 + ')' : ''
+		var filter = style.filter || '';
+		style.zoom = 1;
+		style.filter = (ralpha.test(filter) ?
+			filter.replace(ralpha, opacity) :
+			filter + ' ' + opacity).trim()
+		if (!style.filter) {
+			style.removeAttribute('filter');
+		}
+	};
+	var rnumnonpx = /^-?(?:\d*\.)?\d+(?!px)[^\d\s]+$/i
+	var rposition = /^(top|right|bottom|left)$/
+	var ralpha = /alpha\([^)]*\)/i
+	var ie8 = !! window.XDomainRequest
+	var salpha = 'DXImageTransform.Microsoft.Alpha';
+	var border = {
+		thin: ie8 ? '1px' : '2px',
+		medium: ie8 ? '3px' : '4px',
+		thick: ie8 ? '5px' : '6px'
+	}
 	var getMaps = {
 		opacity:  getOpacity,
 		outerWidth: outerWidth,
 		outerHeight: outerHeight
 	}
-	var getStyle, getOpacity, setOpacity, ret, style;
-	if (window.getComputedStyle) {
-		getStyle = function ( obj, attr ) {
+	function getStyle ( obj, attr ) {
+		if( window.getComputedStyle ) {
 			style = getComputedStyle(obj, null);
 			if (style) {
 				ret = attr === 'filter' ? style.getPropertyValue(attr) : style[attr]
@@ -80,19 +118,7 @@ var _css = (function () {
 				}
 			}
 			return ret
-		}
-	} else {
-		var rnumnonpx = /^-?(?:\d*\.)?\d+(?!px)[^\d\s]+$/i
-		var rposition = /^(top|right|bottom|left)$/
-		var ralpha = /alpha\([^)]*\)/i
-		var ie8 = !! window.XDomainRequest
-		var salpha = 'DXImageTransform.Microsoft.Alpha';
-		var border = {
-			thin: ie8 ? '1px' : '2px',
-			medium: ie8 ? '3px' : '4px',
-			thick: ie8 ? '5px' : '6px'
-		}
-		getStyle = function ( obj, attr ) {
+		} else {
 			if( rGet.test(attr) ) {
 				return getMaps[attr](obj);
 			}
@@ -127,30 +153,11 @@ var _css = (function () {
 				ret = getMaps['outer' + firstUpperCase(attr) ](obj)
 			} 
 
-			return  border[ret] || ret;
-		};
-		getOpacity = function( node ) {
-			//这是最快的获取IE透明值的方式，不需要动用正则了！
-			var alpha = node.filters.alpha || node.filters[salpha],
-				op = alpha && alpha.enabled ? alpha.opacity : 100
-			return (op / 100) + '' //确保返回的是字符串
-		};
-		setOpacity = function ( node, val ) {
-			var style = node.style
-			var opacity = isFinite(val) && val <= 1 ? 'alpha(opacity=' + val * 100 + ')' : ''
-			var filter = style.filter || '';
-			style.zoom = 1;
-			style.filter = (ralpha.test(filter) ?
-				filter.replace(ralpha, opacity) :
-				filter + ' ' + opacity).trim()
-			if (!style.filter) {
-				style.removeAttribute('filter');
-			}
-		};
+			return  border[ret] || ret;				
+		}
 	}
-	var addPx = function ( attr, val ) {
-		return (typeof(val) === 'number') && !cssNumber[ attr.toLowerCase() ] ? val + 'px' : val;
-	};
+	
+
 
 	/**
 	 * 设置 获取 css 样式
@@ -166,22 +173,29 @@ var _css = (function () {
 		// 先做 是否css3属性验证;
 		var prop;
 		var i;
-		if( value ) {
+		// typeof ops === 'string'
+		// value 目标值
+		// 设置
+		if(typeof ops === 'string' && value ) {
 
 			setStyle(elem, cssName(ops), value);
 			return elem;
 		}
-		if( ops ) { //设置
+
+		if( ops ) { //设置 || 获取
 			if( typeof ops === 'string' ) { // ops如果是字符串把它当成要获取的属性
 				return getStyle(elem, cssName(ops));
 			}
+			// 设置属性值
 			for( i in ops ) {
 				setStyle(elem, cssName(i), ops[i]);
 			}
 			return elem;
-		} else { //获取
-			return getStyle(elem, cssName(ops));
-		}
+		} 
+		//else { //获取
+			// return getStyle(elem, cssName(ops));
+		// }
+		console.log( 'css---' )
 		return elem;
 	}
 })();

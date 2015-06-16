@@ -12,6 +12,7 @@ var rword = /[^, ]+/g,
 	slice        = emptyArray.slice,
 	splice       = emptyArray.splice,
 	concat       = emptyArray.concat;
+	function noop() {}
 	/**
 	 * [regWordBorder 单词边距正则]
 	 * @param  string

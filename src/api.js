@@ -26,6 +26,7 @@ utils =  {
 	,ajax          : _ajax
 	,post          : _post
 	,get           : _get
+	,animate       : _animate
 }
 window.utils = utils;
 return utils;
