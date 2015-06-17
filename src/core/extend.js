@@ -1,4 +1,4 @@
-//与jQuery.extend方法，可用于浅拷贝，深拷贝
+//偷jQuery.extend方法，可用于浅拷贝，深拷贝
 function _extend () {
 	var options, name, src, copy, copyIsArray, clone,
 		target = arguments[ 0 ] || {},
