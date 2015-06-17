@@ -15,7 +15,7 @@ function _extend () {
 	if ( typeof target !== 'object' && _getType(target) !== 'function' ) {
 		target = {}
 	}
-	//如果只有一个参数，那么新成员添加于mix所在的对象上
+	//如果只有一个参数立即返回
 	if ( i === length ) {
 		return target;
 		// target = this
