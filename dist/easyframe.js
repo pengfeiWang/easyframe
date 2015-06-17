@@ -1,7 +1,7 @@
 /*! ============================================= 
     project: easyframe  
     version: 0.1.1 
-    update: 2015-06-16 
+    update: 2015-06-17 
     author: pengfeiWang 
 ==================================================  */
 ;(function ( window, factory ) {
@@ -1354,13 +1354,15 @@ var _getField = (function () {
 		}
 		time = parseInt( time );
 		fn = fn || noop;
-
+		// 缓存
 		var id = globalCache.getGid(obj, 'animateName');
+		//获取缓存
 		var set = globalCache.animateCache[ id ] = globalCache.animateCache[ id ] ? 
 					globalCache.animateCache[ id ] : {};
-		//动画开始时间
+		// 动画开始时间
 		var startTime = createTime();
-		var animatePre = '' + startTime;		
+		var animatePre = '' + startTime;	
+		// 缓存数据
 		set[ animatePre ] = {
 			timerId: null,
 			status: false
@@ -1371,11 +1373,9 @@ var _getField = (function () {
 		// 		timerId: null,
 		//  	status: false  执行过程中设为ture
 		// 	}
-		// }
-		
+		// }		
 		// console.log( set )
-		
-		function tick () {
+		function step () {
 			//每次变化的时间 初始时间 + 预设时间 - 当前时间
 			var changTime = time - Math.max(0, startTime + time - createTime());
 			var value;
@@ -1385,7 +1385,7 @@ var _getField = (function () {
 				_css( obj, i, parseFloat(value) )
 			}
 			if( changTime < time ) {
-				requestAnimationFrame( tick );
+				requestAnimationFrame( step );
 			} else {
 				cancelAnimationFrame( set[ animatePre ].timerId );
 				
@@ -1401,7 +1401,7 @@ var _getField = (function () {
 		for( i in ops ) {
 			tmpJson[ i ] = parseFloat( _css( obj, i ) );
 		}
-		set[ animatePre ].timerId = requestAnimationFrame( tick );
+		set[ animatePre ].timerId = requestAnimationFrame( step );
 
 		return obj;
 	}
@@ -1450,6 +1450,7 @@ utils =  {
 	,post          : _post
 	,get           : _get
 	,animate       : _animate
+	,stop          : _stop
 }
 window.utils = utils;
 return utils;
