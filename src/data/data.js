@@ -12,7 +12,7 @@ _data( obj, 'test', [0, 1, 2]) // data-test = [0, 1, 2]
 
 ;var _data = (function () {
 	return function ( obj, key, val ) {
-		if( !obj || obj.nodeType !== 1 || !key || typeof key !== 'string' ) return;
+		if( !obj || obj.nodeType !== 1 || key === undefined || typeof key === 'object' ) return;
 		// 缓存
 		var id = globalCache.getGid(obj, 'dateName');
 		//获取缓存
