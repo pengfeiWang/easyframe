@@ -52,4 +52,4 @@ var __class = (function () {
 			return false;
 		}
 	}
-});
+}());
