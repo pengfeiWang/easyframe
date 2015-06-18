@@ -216,7 +216,7 @@ var _css = (function () {
 		//else { //获取
 			// return getStyle(elem, cssName(ops));
 		// }
-		console.log( 'css---' )
+		// console.log( 'css---' )
 		return elem;
 	}
 })();
