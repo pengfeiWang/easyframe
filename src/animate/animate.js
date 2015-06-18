@@ -1,4 +1,10 @@
-;var _animate = (function (){
+// 动画
+
+/*
+_animate(obj, {width:100px}, 2000, 'linear', fn)
+
+ */
+;var __animate = (function (){
 	var Tween = {
 		//匀速
 		linear: function(t, b, c, d) {
@@ -146,89 +152,88 @@
 		return  (+new Date)
 	}
 	var duration = 200;
-	return function ( obj, ops, time, easing, fn ) {
-		if( !obj || obj.nodeType !== 1 || !ops ) return;
+	return {
+		_animate: function ( obj, ops, time, easing, fn ) {
+			if( !obj || obj.nodeType !== 1 || !ops ) return;
 
-		if( !time && _isFunction( easing ) ) {
-			fn = easing;
-			time = duration;
-			easing = 'linear';
-		}
-		if( _isFunction( easing ) ) {
-			fn = easing;
-			easing = 'linear'
-		}
-		if( !time ) {
-			time = duration
-		}
-		if( !easing ) {
-			easing = 'linear'
-		}
-		time = parseInt( time );
-		fn = fn || noop;
-		// 缓存
-		var id = globalCache.getGid(obj, 'animateName');
-		//获取缓存
-		var set = globalCache.animateCache[ id ] = globalCache.animateCache[ id ] ? 
-					globalCache.animateCache[ id ] : {};
-		// 动画开始时间
-		var startTime = createTime();
-		var animatePre = '' + startTime;	
-		// 缓存数据
-		set[ animatePre ] = {
-			timerId: null,
-			status: false
-		}
-		// 缓存格式, 利用时间戳来做判断依据		
-		// animateCache = {
-		// 	startTime: {
-		// 		timerId: null,
-		//  	status: false  执行过程中设为ture
-		// 	}
-		// }		
-		// console.log( set )
-		function step () {
-			//每次变化的时间 初始时间 + 预设时间 - 当前时间
-			var changTime = time - Math.max(0, startTime + time - createTime());
-			var value;
-			set[ animatePre ].status = true;
-			for( var i in ops ) {
-				value = Tween[ easing ]( changTime, tmpJson[ i ], parseFloat(ops[ i ]) - tmpJson[ i ], time );
-				_css( obj, i, parseFloat(value) )
+			if( !time && _isFunction( easing ) ) {
+				fn = easing;
+				time = duration;
+				easing = 'linear';
 			}
-			if( changTime < time ) {
-				requestAnimationFrame( step );
-			} else {
-				cancelAnimationFrame( set[ animatePre ].timerId );
-				
-				set[ animatePre ].status = false;
-				fn&&fn.call(obj);
+			if( _isFunction( easing ) ) {
+				fn = easing;
+				easing = 'linear'
+			}
+			if( !time ) {
+				time = duration
+			}
+			if( !easing ) {
+				easing = 'linear'
+			}
+			time = parseInt( time );
+			fn = fn || noop;
+			// 缓存
+			var id = globalCache.getGid(obj, 'animateName');
+			//获取缓存
+			var set = globalCache.animateCache[ id ] = globalCache.animateCache[ id ] ? 
+						globalCache.animateCache[ id ] : {};
+			// 动画开始时间
+			var startTime = createTime();
+			var animatePre = '' + startTime;	
+			// 缓存数据
+			set[ animatePre ] = {
+				timerId: null,
+				status: false
+			}
+			// 缓存格式, 利用时间戳来做判断依据		
+			// animateCache = {
+			// 	startTime: {
+			// 		timerId: null,
+			//  	status: false  执行过程中设为ture
+			// 	}
+			// }		
+			// console.log( set )
+			function step () {
+				//每次变化的时间 初始时间 + 预设时间 - 当前时间
+				var changTime = time - Math.max(0, startTime + time - createTime());
+				var value;
+				set[ animatePre ].status = true;
+				for( var i in ops ) {
+					value = Tween[ easing ]( changTime, tmpJson[ i ], parseFloat(ops[ i ]) - tmpJson[ i ], time );
+					_css( obj, i, parseFloat(value) )
+				}
+				if( changTime < time ) {
+					requestAnimationFrame( step );
+				} else {
+					cancelAnimationFrame( set[ animatePre ].timerId );
+					
+					set[ animatePre ].status = false;
+					fn&&fn.call(obj);
 
-				// 动画执行结束删除缓存
-				delete set[ animatePre ];
+					// 动画执行结束删除缓存
+					delete set[ animatePre ];
+				}
+			}
+			var i, tmpJson = {};
+			cancelAnimationFrame( set[ animatePre ].timerId )
+			for( i in ops ) {
+				tmpJson[ i ] = parseFloat( _css( obj, i ) );
+			}
+			set[ animatePre ].timerId = requestAnimationFrame( step );
+
+			return obj;
+		},
+		_stop: function ( obj ) {
+			var id = globalCache.getGid(obj, 'animateName');
+			var set = globalCache.animateCache[ id ];
+			var i;
+			for( var i in set ) {
+				if( set[ i ].status === true ) {
+					cancelAnimationFrame( set[ i ].timerId );
+					delete set[ i ];
+				}
 			}
 		}
-		var i, tmpJson = {};
-		cancelAnimationFrame( set[ animatePre ].timerId )
-		for( i in ops ) {
-			tmpJson[ i ] = parseFloat( _css( obj, i ) );
-		}
-		set[ animatePre ].timerId = requestAnimationFrame( step );
-
-		return obj;
 	}
 }());
-
-var _stop = (function () {
-	return function ( obj ) {
-		var id = globalCache.getGid(obj, 'animateName');
-		var set = globalCache.animateCache[ id ];
-		var i;
-		for( var i in set ) {
-			if( set[ i ].status === true ) {
-				cancelAnimationFrame( set[ i ].timerId );
-				delete set[ i ];
-			}
-		}
-	}
-});

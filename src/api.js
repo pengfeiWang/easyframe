@@ -14,20 +14,21 @@ utils =  {
 	,getEle        : _getElement
 	,getElement    : _getElement
 	,css           : _css
-	,hasClass      : _hasClass
-	,addClass      : _addClass
-	,removeClass   : _removeClass
-	,on            : _on
-	,off           : _off
-	,one           : _one
-	,trigger       : _trigger
+	,hasClass      : __class._hasClass
+	,addClass      : __class._addClass
+	,removeClass   : __class._removeClass
+	,on            : __event._on
+	,off           : __event._off
+	,one           : __event._one
+	,trigger       : __event._trigger
 	,getField      : _getField
 	,serialize     : _serialize
 	,ajax          : _ajax
 	,post          : _post
 	,get           : _get
-	,animate       : _animate
-	,stop          : _stop
+	,animate       : __animate._animate
+	,stop          : __animate._stop
+	,attr          : _attr
 	,data          : _data
 }
 window.utils = utils;

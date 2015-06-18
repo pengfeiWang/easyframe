@@ -1,13 +1,29 @@
 // data
 
 
+//设置 都会返回当前节点
+//获取 返回需要获取的数据
 /* 
-_data( obj, 'test', 'a') // data-test = a
-_data( obj, 'test', {a:1, b:2}) // data-test = {a:1, b:2}
-_data( obj, 'test', [0, 1, 2]) // data-test = [0, 1, 2]
+_data( obj, 'test', 'a') 
+data-test = a 
+return obj
+
+_data( obj, 'test', {a:1, b:2}) 
+data-test = {a:1, b:2} 
+return obj
+
+_data( obj, 'test', [0, 1, 2])
+data-test = [0, 1, 2] 
+return obj
+
+==========
+
+_data( obj, 'test')
+返回绑定obj上 key 为 test 的 数据 
 
 
-
+_data( obj, 'test', null)
+返回 obj,  并删除绑定到obj上key为test的数据 
 */
 
 ;var _data = (function () {

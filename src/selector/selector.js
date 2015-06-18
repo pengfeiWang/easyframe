@@ -6,12 +6,8 @@
  * @param context
  * @returns elements || nodeElement
  */
-// var _getElement = (funcion (){
 
-// 	return function () {
-
-// 	}
-// })();
+// 
 ;function _getElement ( select, context ) {
 	if ( !select )  return;
 	if( select == 'body' ) {

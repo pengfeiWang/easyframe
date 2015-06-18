@@ -30,13 +30,14 @@ module.exports = function (grunt) {
 				files: {
 					"./dist/<%= pkg.name %>.js": [
 						'src/open.js'
+						//原型扩展方法
+						,'src/core/sys_ext_method.js'
 						//正则
 						,'src/core/regexp.js'
 						//缓存
 						,'src/core/cache.js'
 						,'src/core/class2type.js'
-						//原型扩展方法
-						,'src/core/sys_ext_method.js'
+						
 						//数组去重
 						,'src/core/arrunique.js'
 						//各种判断函数
@@ -61,7 +62,9 @@ module.exports = function (grunt) {
 						,'src/ajax/ajax.js'
 						//动画系统
 						,'src/animate/animate.js'
-						//动画系统
+						//自定义属性操作
+						,'src/attr/attr.js'
+						//自定义数据
 						,'src/data/data.js'
 						//对外api
 						,'src/api.js'

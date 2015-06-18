@@ -1,3 +1,6 @@
+//获取有效的表单字段, 或dom节点内的 input select等标签的value, 并转成 key-value
+
+
 var _getField = (function () {
 	/**
 	 * 获取表单字段
@@ -37,9 +40,11 @@ var _getField = (function () {
 	 * 
 	 * 获取有效的字段, 并转成 key-value
 	 */
-	function getField ( obj ) {
+	return function ( obj ) {
 		if( !obj ) return;
-		if( _isObject( obj ) ) return obj;
+		if( _isObject( obj ) ) {
+			return obj; 
+		}
 		var dataArray = obj.tagName.toLowerCase() == 'form' ? getFrmField( obj ) : getElemField( obj );
 		var o = {}, 
 			i = 0, 
@@ -105,6 +110,4 @@ var _getField = (function () {
 
 		return o;
 	}
-
-	return getField;
 }());

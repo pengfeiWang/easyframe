@@ -1,3 +1,19 @@
+// css
+
+/*
+设置 获取 样式
+_css( obj, 'attr' ) 
+返回obj.style[attr]
+
+_css( obj, 'attr', 'val')
+设置obj.style[attr] = val
+返回 obj
+
+_css( obj, {width:100px, height: 200px})
+设置obj.style, width height
+返回obj
+*/
+;
 var _css = (function () {
 	"use strict";
 	var rnocame = /[^_-]/;

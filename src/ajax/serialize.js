@@ -1,3 +1,10 @@
+//系列化
+
+
+/*
+_serialize( {a:1, b:2} )
+return a=1&b=2
+ */
 ;var _serialize = (function () {
 	function param ( a ) {
 		var prefix,

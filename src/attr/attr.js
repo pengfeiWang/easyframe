@@ -6,8 +6,24 @@
  * @param  
  * @return 
  */
+
+/*
+
+_attr( obj, 'test', '123')
+设置 obj 属性 test='123'
+返回 obj
+
+_attr( obj, 'test', null)
+删除obj.test 属性
+返回 obj
+
+_attr( obj, test )
+获取 obj 属性test的值
+返回属性值
+ */
 ;var _attr = (function () {
 	var clsFix = /^class$/i;
+
 	return function ( obj, attr, val ) {
 		var ret;
 		var clsBool = clsFix.test(attr);
@@ -17,10 +33,13 @@
 			if( val === null ) {
 				obj.removeAttribute( attr );
 			} else {
+				if( typeof val !== 'string' ) {
+					val = JSON.stringify(val);
+				}
 				if( clsBool ) {
 					_class(obj, val)
 				} else {
-					obj.setAttribute( name, value + '' );
+					obj.setAttribute( attr, val );
 				}
 			}
 			return obj;
@@ -28,17 +47,20 @@
 			if( clsBool ) {
 				ret = obj.className;
 			} else {
-				ret = obj.getAttribute( name );
+				ret = obj.getAttribute( attr );
 			}
 			return ret;
 		}
 	}
 }());
 
-var _removeAttr = (function ( obj, attr ) {
-	if( !obj && obj.nodeType !== 1 && attr === undefined ) return;
-	if( obj.hasAttribute( attr ) ) {
-		obj.removeAttribute( attr );
-	}
-	return obj;
-}());
+// var _removeAttr = (function () {
+// 	return function ( obj, attr ) {
+// 		if( !obj && obj.nodeType !== 1 && attr === undefined ) return;
+// 		if( obj.hasAttribute( attr ) ) {
+// 			obj.removeAttribute( attr );
+// 		}
+// 		return obj;		
+// 	}
+
+// }());

@@ -20,6 +20,227 @@
 	var utils = {};
 	
 
+/**
+ * 数组原型添加 indexOf 方法
+ */
+if ( !Array.prototype.indexOf ) {
+	Array.prototype.indexOf = function ( element, index ) {
+		var length = this.length;
+		var current;
+		if ( index == null ) {
+			index = 0;
+		} else {
+			index = +index || 0;
+			if ( index < 0 ) index += length;
+			if ( index < 0 ) index = 0;
+		}
+		for ( ; index < length; index++ ) {
+			current = this[ index ];
+			if ( current === element ) return index;
+		}
+		return -1;
+	}
+}
+if (!'string'.trim) {
+    var rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g
+    String.prototype.trim = function () {
+        return this.replace(rtrim, "")
+    }
+}
+
+;(function() {
+	var lastTime = 0;
+	var vendors = ['ms', 'moz', 'webkit', 'o'];
+	for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+		window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
+		window.cancelAnimationFrame = window[vendors[x] + 'CancelAnimationFrame'] || 
+									  window[vendors[x] + 'CancelRequestAnimationFrame'];
+	}
+	if (!window.requestAnimationFrame) {
+		window.requestAnimationFrame = function(callback, element) {
+			var currTime = new Date().getTime();
+			var timeToCall = Math.max(0, 16.7 - (currTime - lastTime));
+			var id = window.setTimeout(function() {
+				callback(currTime + timeToCall);
+			}, timeToCall);
+			lastTime = currTime + timeToCall;
+			return id;
+		}
+	}
+	if (!window.cancelAnimationFrame) {
+		window.cancelAnimationFrame = function(id) {
+			clearTimeout(id);
+		}
+	}
+}());
+
+if ( typeof JSON !== 'object' ) {
+	JSON = {};
+}
+(function () {
+	function f ( n ) {
+		return n < 10 ? '0' + n : n;
+	}
+
+	if ( typeof Date.prototype.toJSON !== 'function' ) {
+		Date.prototype.toJSON = function ( key ) {
+			return isFinite(this.valueOf()) ? this.getUTCFullYear() + '-' + f(this.getUTCMonth() + 1) + '-' + f(this.getUTCDate()) + 'T' + f(this.getUTCHours()) + ':' + f(this.getUTCMinutes()) + ':' + f(this.getUTCSeconds()) + 'Z' : null;
+		};
+		String.prototype.toJSON = Number.prototype.toJSON = Boolean.prototype.toJSON = function ( key ) {
+			return this.valueOf();
+		};
+	}
+	var cx = /[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
+	    escapable = /[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
+	    gap,
+	    indent,
+	    meta = {
+		    '':  '\\b',
+		    '\t': '\\t',
+		    '\n': '\\n',
+		    '\f': '\\f',
+		    '\r': '\\r',
+		    '"':  '\\"',
+		    '\\': '\\\\'
+	    },
+	    rep;
+
+	function quote ( string ) {
+		escapable.lastIndex = 0;
+		return escapable.test(string) ? '"' + string.replace(escapable, function ( a ) {
+			var c = meta[ a ];
+			return typeof c === 'string' ? c : '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
+		}) + '"' : '"' + string + '"';
+	}
+
+	function str ( key, holder ) {
+		var i,
+		    k,
+		    v,
+		    length,
+		    mind = gap,
+		    partial,
+		    value = holder[ key ];
+		if ( value && typeof value === 'object' && typeof value.toJSON === 'function' ) {
+			value = value.toJSON(key);
+		}
+		if ( typeof rep === 'function' ) {
+			value = rep.call(holder, key, value);
+		}
+		switch ( typeof value ) {
+			case 'string':
+				return quote(value);
+			case 'number':
+				return isFinite(value) ? String(value) : 'null';
+			case 'boolean':
+			case 'null':
+				return String(value);
+			case 'object':
+				if ( !value ) {
+					return 'null';
+				}
+				gap += indent;
+				partial = [];
+				if ( Object.prototype.toString.apply(value) === '[object Array]' ) {
+					length = value.length;
+					for ( i = 0; i < length; i += 1 ) {
+						partial[ i ] = str(i, value) || 'null';
+					}
+					v = partial.length === 0 ? '[]' : gap ? '[\n' + gap + partial.join(',\n' + gap) + '\n' + mind + ']' : '[' + partial.join(',') + ']';
+					gap = mind;
+					return v;
+				}
+				if ( rep && typeof rep === 'object' ) {
+					length = rep.length;
+					for ( i = 0; i < length; i += 1 ) {
+						if ( typeof rep[ i ] === 'string' ) {
+							k = rep[ i ];
+							v = str(k, value);
+							if ( v ) {
+								partial.push(quote(k) + (gap ? ': ' : ':') + v);
+							}
+						}
+					}
+				} else {
+					for ( k in value ) {
+						if ( Object.prototype.hasOwnProperty.call(value, k) ) {
+							v = str(k, value);
+							if ( v ) {
+								partial.push(quote(k) + (gap ? ': ' : ':') + v);
+							}
+						}
+					}
+				}
+				v = partial.length === 0 ? '{}' : gap ? '{\n' + gap + partial.join(',\n' + gap) + '\n' + mind + '}' : '{' + partial.join(',') + '}';
+				gap = mind;
+				return v;
+		}
+	}
+
+	if ( typeof JSON.stringify !== 'function' ) {
+		JSON.stringify = function ( value, replacer, space ) {
+			var i;
+			gap = '';
+			indent = '';
+			if ( typeof space === 'number' ) {
+				for ( i = 0; i < space; i += 1 ) {
+					indent += ' ';
+				}
+			} else {
+				if ( typeof space === 'string' ) {
+					indent = space;
+				}
+			}
+			rep = replacer;
+			if ( replacer && typeof replacer !== 'function' && (typeof replacer !== 'object' || typeof replacer.length !== 'number') ) {
+				throw new Error('JSON.stringify');
+			}
+			return str('', {
+				'': value
+			});
+		};
+	}
+	if ( typeof JSON.parse !== 'function' ) {
+		JSON.parse = function ( text, reviver ) {
+			var j;
+
+			function walk ( holder, key ) {
+				var k,
+				    v,
+				    value = holder[ key ];
+				if ( value && typeof value === 'object' ) {
+					for ( k in value ) {
+						if ( Object.prototype.hasOwnProperty.call(value, k) ) {
+							v = walk(value, k);
+							if ( v !== undefined ) {
+								value[ k ] = v;
+							} else {
+								delete value[ k ];
+							}
+						}
+					}
+				}
+				return reviver.call(holder, key, value);
+			}
+
+			text = String(text);
+			cx.lastIndex = 0;
+			if ( cx.test(text) ) {
+				text = text.replace(cx, function ( a ) {
+					return '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
+				});
+			}
+			if ( /^[\],:{}\s]*$/.test(text.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, '@').replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']').replace(/(?:^|:|,)(?:\s*\[)+/g, '')) ) {
+				j = eval('(' + text + ')');
+				return typeof reviver === 'function' ? walk({
+					'': j
+				}, '') : j;
+			}
+			throw new SyntaxError('JSON.parse');
+		};
+	}
+}());
+
 var rword = /[^, ]+/g,
 	rnospaces = /\S+/g,
 	rwindow = /^\[object (?:Window|DOMWindow|global)\]$/,
@@ -113,59 +334,6 @@ function _getType ( obj ) { //
 	class2type[ oToString.call(obj) ] || 'object' :
 		typeof obj
 }	
-/**
- * 数组原型添加 indexOf 方法
- */
-if ( !Array.prototype.indexOf ) {
-	Array.prototype.indexOf = function ( element, index ) {
-		var length = this.length;
-		var current;
-		if ( index == null ) {
-			index = 0;
-		} else {
-			index = +index || 0;
-			if ( index < 0 ) index += length;
-			if ( index < 0 ) index = 0;
-		}
-		for ( ; index < length; index++ ) {
-			current = this[ index ];
-			if ( current === element ) return index;
-		}
-		return -1;
-	}
-}
-if (!'string'.trim) {
-    var rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g
-    String.prototype.trim = function () {
-        return this.replace(rtrim, "")
-    }
-}
-
-;(function() {
-	var lastTime = 0;
-	var vendors = ['ms', 'moz', 'webkit', 'o'];
-	for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-		window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
-		window.cancelAnimationFrame = window[vendors[x] + 'CancelAnimationFrame'] || 
-									  window[vendors[x] + 'CancelRequestAnimationFrame'];
-	}
-	if (!window.requestAnimationFrame) {
-		window.requestAnimationFrame = function(callback, element) {
-			var currTime = new Date().getTime();
-			var timeToCall = Math.max(0, 16.7 - (currTime - lastTime));
-			var id = window.setTimeout(function() {
-				callback(currTime + timeToCall);
-			}, timeToCall);
-			lastTime = currTime + timeToCall;
-			return id;
-		}
-	}
-	if (!window.cancelAnimationFrame) {
-		window.cancelAnimationFrame = function(id) {
-			clearTimeout(id);
-		}
-	}
-}());
 /**
  * 数组去重
  * @param  arr [ Array ]
@@ -385,12 +553,8 @@ var _browser;
  * @param context
  * @returns elements || nodeElement
  */
-// var _getElement = (funcion (){
 
-// 	return function () {
-
-// 	}
-// })();
+// 
 ;function _getElement ( select, context ) {
 	if ( !select )  return;
 	if( select == 'body' ) {
@@ -424,49 +588,74 @@ var _browser;
 		class	
 ======================*/
 
-// var cls = (function (){
-	
-// })();
-function _addClass ( elem, cls, fn ) {
-	if ( cls && typeof cls === 'string' && elem.nodeType === 1 ) {
-		if ( !elem.className ) {
-			elem.className = cls;
-		} else {
-			var arr = elem.className.match(rnospaces);
-			cls.replace(rnospaces, function ( a ) {
-				if ( arr.indexOf(a) === -1 ) {
-					arr.push(a);
+/*	
+_addClass( elem, cls, fn )
+
+_addClass 添加 class
+_removeClass 删除 class
+_hasClass 验证 class
+ */
+var __class = (function () {
+	return {
+		_addClass: function ( elem, cls, fn ) {
+			if ( cls && typeof cls === 'string' && elem.nodeType === 1 ) {
+				if ( !elem.className ) {
+					elem.className = cls;
+				} else {
+					var arr = elem.className.match(rnospaces);
+					cls.replace(rnospaces, function ( a ) {
+						if ( arr.indexOf(a) === -1 ) {
+							arr.push(a);
+						}
+					});
+					elem.className = arr.join(' ');
 				}
-			});
-			elem.className = arr.join(' ');
-		}
-		if ( fn ) {
-			fn.call(elem);
+				if ( fn ) {
+					fn.call(elem);
+				}
+			}
+			return elem;
+		},
+		_removeClass: function ( elem, cls, fn ) {
+			if ( cls && typeof cls > 'o' && elem.nodeType === 1 && elem.className ) {
+				var classNames = (cls || '').match(rnospaces) || [];
+				var cl = classNames.length;
+				var set = ' ' + elem.className.match(rnospaces).join(' ') + ' ';
+				for ( var c = 0; c < cl; c++ ) {
+					set = set.replace(' ' + classNames[ c ] + ' ', ' ');
+				}
+				elem.className = set.slice(1, set.length - 1);
+				if ( fn ) {
+					fn.call(elem);
+				}
+			}
+			return elem;
+		},
+		_hasClass: function ( elem, cls ) {
+			if ( elem.nodeType === 1 && elem.className ) {
+				return (' ' + elem.className + ' ').indexOf(' ' + cls + ' ') > -1
+			}
+			return false;
 		}
 	}
-	return elem;
-}
-function _removeClass ( elem, cls, fn ) {
-	if ( cls && typeof cls > 'o' && elem.nodeType === 1 && elem.className ) {
-		var classNames = (cls || '').match(rnospaces) || [];
-		var cl = classNames.length;
-		var set = ' ' + elem.className.match(rnospaces).join(' ') + ' ';
-		for ( var c = 0; c < cl; c++ ) {
-			set = set.replace(' ' + classNames[ c ] + ' ', ' ');
-		}
-		elem.className = set.slice(1, set.length - 1);
-		if ( fn ) {
-			fn.call(elem);
-		}
-	}
-	return elem;
-}	
-function _hasClass ( elem, cls ) {
-	if ( elem.nodeType === 1 && elem.className ) {
-		return (' ' + elem.className + ' ').indexOf(' ' + cls + ' ') > -1
-	}
-	return false;
-}
+});
+
+// css
+
+/*
+设置 获取 样式
+_css( obj, 'attr' ) 
+返回obj.style[attr]
+
+_css( obj, 'attr', 'val')
+设置obj.style[attr] = val
+返回 obj
+
+_css( obj, {width:100px, height: 200px})
+设置obj.style, width height
+返回obj
+*/
+;
 var _css = (function () {
 	"use strict";
 	var rnocame = /[^_-]/;
@@ -688,247 +877,258 @@ var _css = (function () {
  * @param  target  function
  * @return boolean
  */
-function eventCacheFind ( arr, target ) {
-	var bool = false;
-	for ( var i = 0, len = arr.length; i < len; i++ ) {
-		if ( arr[ i ].fn == target ) {
-			bool = true;
-			break;
+
+var __event = (function () {
+	function eventCacheFind ( arr, target ) {
+		var bool = false;
+		for ( var i = 0, len = arr.length; i < len; i++ ) {
+			if ( arr[ i ].fn == target ) {
+				bool = true;
+				break;
+			}
 		}
+		return bool;
 	}
-	return bool;
-}
-// 创建 事件
-function createEvent ( ev/*, props */ ) {
-	// document.createEvent || document.createEventObject
-	var event /*= document.createEvent("Events") || document.createEventObject()*/,
-	    bubbles = true;
-	// if (props) {
-	// 	for ( var name in props ) {
-	// 		if ( name === "bubbles" ) { 
-	// 			bubbles = !!props[name];
-	// 		} else {
-	// 			event[name] = props[name];
-	// 		}
-	// 	}
-	// }
-	// 标准浏览器 使用 createEvent, ie 使用 createEventObject
-	if ( document.createEvent ) {
-		event = document.createEvent('Events');
-		event.initEvent(ev, bubbles, true, null, null, null, null, null, null, null, null, null, null, null, null);
-	} else {
-		event = document.createEventObject();
-		event.type = ev;
-		event.cancelBubble = bubbles;// 冒泡
-		event.returnValue = undefined;//默认事件
-		event.srcElement = null;
-		event.recordset = null;
-		event.data = null;
-	}
-	return event;
-}
-/**
- * 绑定事件
- * @param  obj     dom对象
- * @param  ev      事件
- * @param  fn      回调函数
- * @param  capture 标准浏览器, 是否捕获
- * @param  one     内部使用, 是否来自 one函数
- * @return 返回 obj
- */
-function _on ( obj, ev, fn, capture, one ) {
-	if ( arguments.length < 3 ) return;
-	//用空格 间隔 事件
-	ev = ev.match(rword);
-	var id = globalCache.getGid(obj, 'eventName'),
-	    i = 0,
-	    len = ev.length;
-	// 获取事件缓存, 如果不存在则创建
-	var set = globalCache.eventCache[ id ] = globalCache.eventCache[ id ] ? globalCache.eventCache[ id ] : {};
-	var tmpObject = {
-		fn: fn
-	}
-	if ( one === 'one' ) {
-		tmpObject.one = true;
-	}
-	function eventBind ( obj, ev, fn, capture ) {
-		if ( obj.addEventListener ) {
-			obj.addEventListener(ev, fn, !!capture);
-		} else if ( obj.attachEvent ) {
-			obj.attachEvent('on' + ev, fn);
+	// 创建 事件
+	function createEvent ( ev/*, props */ ) {
+		// document.createEvent || document.createEventObject
+		var event /*= document.createEvent("Events") || document.createEventObject()*/,
+		    bubbles = true;
+		// if (props) {
+		// 	for ( var name in props ) {
+		// 		if ( name === "bubbles" ) { 
+		// 			bubbles = !!props[name];
+		// 		} else {
+		// 			event[name] = props[name];
+		// 		}
+		// 	}
+		// }
+		// 标准浏览器 使用 createEvent, ie 使用 createEventObject
+		if ( document.createEvent ) {
+			event = document.createEvent('Events');
+			event.initEvent(ev, bubbles, true);
+			// event.initEvent(ev, bubbles, true, null, null, null, null, null, null, null, null, null, null, null, null);
 		} else {
-			obj[ 'on' + ev ] = fn;
+			event = document.createEventObject();
+			event.type = ev;
+			event.cancelBubble = bubbles;// 冒泡
+			event.returnValue = undefined;//默认事件
+			event.srcElement = null;
+			event.recordset = null;
+			event.data = null;
 		}
+		return event;
 	}
-	
-	// 判断是否 dom 对象 或者 window
-	if ( ( obj.nodeType && ( obj.nodeType === 1 || obj.nodeType == 9 ) ) || _isWindow(obj) ) {
-		for ( ; i < len; i++ ) {
-			// 判断事件是否存在, 不存在则声明, 并push fn 
-			if ( !set[ ev[ i ] ] ) {
-				set[ ev[ i ] ] = [];
-				// set[ ev[ i ] ].push( fn );
-				set[ ev[ i ] ].push(tmpObject);
-				eventBind(obj, ev[ i ], fn, !!capture)
-			} else if ( _isArray(set[ ev[ i ] ]) && !eventCacheFind(set[ ev[ i ] ], fn) ) {
-				// set[ ev[ i ] ].push( fn );
-				set[ ev[ i ] ].push(tmpObject);
-				eventBind(obj, ev[ i ], fn, !!capture);
+	return {
+		/**
+		 * 绑定事件
+		 * @param  obj     dom对象
+		 * @param  ev      事件
+		 * @param  fn      回调函数
+		 * @param  capture 标准浏览器, 是否捕获
+		 * @param  one     内部使用, 是否来自 one函数
+		 * @return 返回 obj
+		 */
+		_on: function ( obj, ev, fn, capture, one ) {
+			if ( arguments.length < 3 ) return;
+			//用空格 间隔 事件
+			ev = ev.match(rword);
+			var id = globalCache.getGid(obj, 'eventName'),
+			    i = 0,
+			    len = ev.length;
+			// 获取事件缓存, 如果不存在则创建
+			var set = globalCache.eventCache[ id ] = globalCache.eventCache[ id ] ? globalCache.eventCache[ id ] : {};
+			var tmpObject = {
+				fn: fn
 			}
-		}
-	}
-	return obj;
-}
-// 指定 event fn, 则销毁
-/**
- * 销毁事件
- * @param  obj     dom 对象
- * @param  ev      销毁的事件
- * @param  fn      销毁的回调
- * @param  capture
- * @return 返回 dom 对象
- *
- * _off(obj) 销毁obj上的所有事件
- * _off(obj, ev) 销毁obj绑定的 ev 事件
- * _off(obj, ev, fn) 销毁 obj 绑定的 ev 事件 并且 回调一致
- */
-function _off ( obj, ev, fn, capture ) {
-	if ( !obj ) {
-		return;
-	}
-	if ( ( obj.nodeType && ( obj.nodeType === 1 || obj.nodeType == 9 ) ) || _isWindow(obj) ) {
-		var id = globalCache.getGid(obj);
-		var ageLen = arguments.length;
-		var cache = globalCache.eventCache[ id ];
-		var removeEvent = function ( evS, ev, fn, idx ) {
-			evS.splice(idx, 1);
-			if ( obj.addEventListener ) {
-				obj.removeEventListener(ev, fn);
-			} else if ( obj.detachEvent ) {
-				obj.detachEvent('on' + ev, fn);
-			} else {
-				obj[ 'on' + ev ] = null;
+			if ( one === 'one' ) {
+				tmpObject.one = true;
 			}
-		}
-		var handleEvent = function ( hdlEvt, hdlFn ) {
-			var evt = hdlEvt ? cache[ hdlEvt ] : false;
-			var callBackFn = hdlFn === undefined ? fn : false;
-			var eLen = 0;
-			if ( evt ) {
-				eLen = evt.length;
-				if ( callBackFn ) {
-					for ( var i = 0; i < eLen; i++ ) {
-						if ( evt[ i ].fn == callBackFn ) {
-							// obj.removeEventListener( hdlEvt, fn, !!capture );
-							// evt.splice( i, 1 );
-							removeEvent(evt, hdlEvt, fn, i);
-						}
-					}
-				} else if ( callBackFn === false ) {
-					for ( var i = 0; i < eLen; i++ ) {
-						// obj.removeEventListener( hdlEvt, evt[ i ], !!capture );
-						// evt.splice( i, 1 );
-						removeEvent(evt, hdlEvt, evt[ i ].fn, i);
-					}
+			function eventBind ( obj, ev, fn, capture ) {
+				if ( obj.addEventListener ) {
+					obj.addEventListener(ev, fn, !!capture);
+				} else if ( obj.attachEvent ) {
+					obj.attachEvent('on' + ev, fn);
+				} else {
+					obj[ 'on' + ev ] = fn;
 				}
-			} else {
-				for ( var i in cache ) {
-					var evt = cache[ i ],
-					    eLen = evt.length;
-					for ( var j = 0; j < eLen; j++ ) {
-						// obj.removeEventListener( i, evt[ j ], !!capture );
-						// evt.splice( j, 1 );
-						removeEvent(evt, i, evt[ j ].fn, j);
+			}
+			
+			// 判断是否 dom 对象 或者 window
+			if ( ( obj.nodeType && ( obj.nodeType === 1 || obj.nodeType == 9 ) ) || _isWindow(obj) ) {
+				for ( ; i < len; i++ ) {
+					// 判断事件是否存在, 不存在则声明, 并push fn 
+					if ( !set[ ev[ i ] ] ) {
+						set[ ev[ i ] ] = [];
+						// set[ ev[ i ] ].push( fn );
+						set[ ev[ i ] ].push(tmpObject);
+						eventBind(obj, ev[ i ], fn, !!capture)
+					} else if ( _isArray(set[ ev[ i ] ]) && !eventCacheFind(set[ ev[ i ] ], fn) ) {
+						// set[ ev[ i ] ].push( fn );
+						set[ ev[ i ] ].push(tmpObject);
+						eventBind(obj, ev[ i ], fn, !!capture);
 					}
 				}
 			}
-		}
-		if ( !cache || _isFunction(ev) ) return;
-		ev = ev ? ev.match(rword) : [];
-		// 这里没有做严谨的判断
-		if ( ageLen >= 3 ) {
-			for ( var i = 0, len = ev.length; i < len; i++ ) {
-				handleEvent(ev[ i ])
+			return obj;
+		},
+		// 指定 event fn, 则销毁
+		/**
+		 * 销毁事件
+		 * @param  obj     dom 对象
+		 * @param  ev      销毁的事件
+		 * @param  fn      销毁的回调
+		 * @param  capture
+		 * @return 返回 dom 对象
+		 *
+		 * _off(obj) 销毁obj上的所有事件
+		 * _off(obj, ev) 销毁obj绑定的 ev 事件
+		 * _off(obj, ev, fn) 销毁 obj 绑定的 ev 事件 并且 回调一致
+		 */
+		_off: function ( obj, ev, fn, capture ) {
+			if ( !obj ) {
+				return;
 			}
-		} else if ( ageLen == 2 ) {
-			for ( var i = 0, len = ev.length; i < len; i++ ) {
-				handleEvent(ev[ i ], false);
-			}
-		} else {
-			handleEvent();
-		}
-	}
-	return obj;
-}
-/**
- * 绑定, 执行一次
- * @param  obj     dom 对象
- * @param  ev      事件
- * @param  fn      回调
- * @param  capture 捕获
- * @return 返回 dom 对象
- */
-function _one ( obj, ev, fn, capture ) {
-	if ( !obj ) {
-		return;
-	}
-	var proxy = function () {
-		fn.apply(obj, arguments);
-		_off(obj, ev, proxy, capture);
-	}
-	_on(obj, ev, proxy, capture, 'one');
-	return obj;
-}
-/**
- * 执行事件, 系统事件, 自定义事件
- * @param  obj  dom对象
- * @param  ev   事件
- * @param  data 传递的数据
- * @return 返回 dom
- */
-function _trigger ( obj, ev, data ) {
-	if ( !obj || !ev ) return;
-	var sEv, i = 0, j, evt;
-	if ( typeof ev !== 'string' && _isPlainObject(ev) ) {
-		for ( j in ev ) {
-			sEv += ' ' + ev[ j ];
-		}
-	} else {
-		sEv = ev;
-	}
-	sEv = sEv.match(rword);
-	for ( var len = sEv.length; i < len; i++ ) {
-		evt = createEvent(sEv[ i ]);
-		if ( data ) {
-			evt.data = data;
-		}
-		// 标准浏览器
-		if ( /*document.createEvent*/ obj.dispatchEvent ) {
-			obj.dispatchEvent(evt);
-			// IE 	
-		} else if ( obj.fireEvent ) {
-			try {
-				obj.fireEvent(sEv[ i ], evt);
-			} catch ( e ) {
+			if ( ( obj.nodeType && ( obj.nodeType === 1 || obj.nodeType == 9 ) ) || _isWindow(obj) ) {
 				var id = globalCache.getGid(obj);
+				var ageLen = arguments.length;
 				var cache = globalCache.eventCache[ id ];
-				var n = 0, tmp, len;
-				evt.srcElement = obj;
-				for ( var i in cache ) {
-					tmp = cache[ i ];
-					len = tmp.length;
-					for ( ; n < len; n++ ) {
-						tmp[ n ].fn.call(obj, evt);
-						if ( tmp[ n ].one ) {
-							tmp.splice(n, 1);
+				var removeEvent = function ( evS, ev, fn, idx ) {
+					evS.splice(idx, 1);
+					if ( obj.addEventListener ) {
+						obj.removeEventListener(ev, fn);
+					} else if ( obj.detachEvent ) {
+						obj.detachEvent('on' + ev, fn);
+					} else {
+						obj[ 'on' + ev ] = null;
+					}
+				}
+				var handleEvent = function ( hdlEvt, hdlFn ) {
+					var evt = hdlEvt ? cache[ hdlEvt ] : false;
+					var callBackFn = hdlFn === undefined ? fn : false;
+					var eLen = 0;
+					if ( evt ) {
+						eLen = evt.length;
+						if ( callBackFn ) {
+							for ( var i = 0; i < eLen; i++ ) {
+								if ( evt[ i ].fn == callBackFn ) {
+									// obj.removeEventListener( hdlEvt, fn, !!capture );
+									// evt.splice( i, 1 );
+									removeEvent(evt, hdlEvt, fn, i);
+								}
+							}
+						} else if ( callBackFn === false ) {
+							for ( var i = 0; i < eLen; i++ ) {
+								// obj.removeEventListener( hdlEvt, evt[ i ], !!capture );
+								// evt.splice( i, 1 );
+								removeEvent(evt, hdlEvt, evt[ i ].fn, i);
+							}
+						}
+					} else {
+						for ( var i in cache ) {
+							var evt = cache[ i ],
+							    eLen = evt.length;
+							for ( var j = 0; j < eLen; j++ ) {
+								// obj.removeEventListener( i, evt[ j ], !!capture );
+								// evt.splice( j, 1 );
+								removeEvent(evt, i, evt[ j ].fn, j);
+							}
+						}
+					}
+				}
+				if ( !cache || _isFunction(ev) ) return;
+				ev = ev ? ev.match(rword) : [];
+				// 这里没有做严谨的判断
+				if ( ageLen >= 3 ) {
+					for ( var i = 0, len = ev.length; i < len; i++ ) {
+						handleEvent(ev[ i ])
+					}
+				} else if ( ageLen == 2 ) {
+					for ( var i = 0, len = ev.length; i < len; i++ ) {
+						handleEvent(ev[ i ], false);
+					}
+				} else {
+					handleEvent();
+				}
+			}
+			return obj;
+		},
+		/**
+		 * 绑定, 执行一次
+		 * @param  obj     dom 对象
+		 * @param  ev      事件
+		 * @param  fn      回调
+		 * @param  capture 捕获
+		 * @return 返回 dom 对象
+		 */
+		_one: function ( obj, ev, fn, capture ) {
+			if ( !obj ) {
+				return;
+			}
+			var proxy = function () {
+				fn.apply(obj, arguments);
+				_off(obj, ev, proxy, capture);
+			}
+			_on(obj, ev, proxy, capture, 'one');
+			return obj;
+		},
+		/**
+		 * 执行事件, 系统事件, 自定义事件
+		 * @param  obj  dom对象
+		 * @param  ev   事件
+		 * @param  data 传递的数据
+		 * @return 返回 dom
+		 */
+		_trigger: function ( obj, ev, data ) {
+			if ( !obj || !ev ) return;
+			var sEv, i = 0, j, evt;
+			if ( typeof ev !== 'string' && _isPlainObject(ev) ) {
+				for ( j in ev ) {
+					sEv += ' ' + ev[ j ];
+				}
+			} else {
+				sEv = ev;
+			}
+			sEv = sEv.match(rword);
+			for ( var len = sEv.length; i < len; i++ ) {
+				evt = createEvent(sEv[ i ]);
+				if ( data ) {
+					evt.data = data;
+				}
+				// 标准浏览器
+				if ( /*document.createEvent*/ obj.dispatchEvent ) {
+					obj.dispatchEvent(evt);
+					// IE 	
+				} else if ( obj.fireEvent ) {
+					try {
+						obj.fireEvent(sEv[ i ], evt);
+					} catch ( e ) {
+						var id = globalCache.getGid(obj);
+						var cache = globalCache.eventCache[ id ];
+						var n = 0, tmp, len;
+						evt.srcElement = obj;
+						for ( var i in cache ) {
+							tmp = cache[ i ];
+							len = tmp.length;
+							for ( ; n < len; n++ ) {
+								tmp[ n ].fn.call(obj, evt);
+								if ( tmp[ n ].one ) {
+									tmp.splice(n, 1);
+								}
+							}
 						}
 					}
 				}
 			}
+			return obj;
 		}
 	}
-	return obj;
-}
+});
+
+
+//获取有效的表单字段, 或dom节点内的 input select等标签的value, 并转成 key-value
+
+
 var _getField = (function () {
 	/**
 	 * 获取表单字段
@@ -968,9 +1168,11 @@ var _getField = (function () {
 	 * 
 	 * 获取有效的字段, 并转成 key-value
 	 */
-	function getField ( obj ) {
+	return function ( obj ) {
 		if( !obj ) return;
-		if( _isObject( obj ) ) return obj;
+		if( _isObject( obj ) ) {
+			return obj; 
+		}
 		var dataArray = obj.tagName.toLowerCase() == 'form' ? getFrmField( obj ) : getElemField( obj );
 		var o = {}, 
 			i = 0, 
@@ -1036,9 +1238,14 @@ var _getField = (function () {
 
 		return o;
 	}
-
-	return getField;
 }());
+//系列化
+
+
+/*
+_serialize( {a:1, b:2} )
+return a=1&b=2
+ */
 ;var _serialize = (function () {
 	function param ( a ) {
 		var prefix,
@@ -1084,113 +1291,137 @@ var _getField = (function () {
 		return param( _getField( obj ) );
 	}
 }());
-;var _ajax = (function () {
-	return function ( obj ) {
-		var timerID = null, timeIsOut = false;
-		var ops = _extend({}, {
-			type     : 'POST',
-			url      : '',
-			dataType : 'JSON',
-			data     : {},
-			timeout  : 0,
-			success  : function () {},
-			error    : function () {}
-		}, obj);
+// ajax
+
+/*
+
+type: [post, get]
+dataType: [json, text]
+data: {test: 1}
+success : function
+error: function
+
+_ajax({
+	url: '',
+	type: 'post',
+	dataType: 'json',
+	data: {test: 1},
+	success: function ( data ) {
+	
+	},
+	error: function ( xhr ) {
+	
+	}
+})
+
+ */
+function _ajax( obj ) {
+	var timerID = null, timeIsOut = false;
+	var ops = _extend({}, {
+		type     : 'POST',
+		url      : '',
+		dataType : 'JSON',
+		data     : {},
+		timeout  : 0,
+		success  : function () {},
+		error    : function () {}
+	}, obj);
 
 
-		if( !ops.url ) return;
-		if ( typeof ops.dataType !== 'string' ) {
-			ops.dataType = 'json'
-		}
-		var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP') ;
+	if( !ops.url ) return;
+	if ( typeof ops.dataType !== 'string' ) {
+		ops.dataType = 'json'
+	}
+	var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP') ;
 
-		xhr.onreadystatechange = function () {
-			var json;
-			if( xhr.readyState == 4 && !timeIsOut && xhr.status == 200 ) {
+	xhr.onreadystatechange = function () {
+		var json;
+		if( xhr.readyState == 4 && !timeIsOut && xhr.status == 200 ) {
 
-				var responseText = xhr.responseText;
+			var responseText = xhr.responseText;
 
-				if( /json/i.test( ops.dataType ) ) {
-					try {
-						json = JSON.parse(responseText);
-					} catch ( e ) {
-						new Error( e );
-					}
-
-					ops.success( json );
-				} else {
-					ops.success( responseText );
+			if( /json/i.test( ops.dataType ) ) {
+				try {
+					json = JSON.parse(responseText);
+				} catch ( e ) {
+					new Error( e );
 				}
+
+				ops.success( json );
 			} else {
-				ops.error( xhr )
+				ops.success( responseText );
 			}
-		}
-		ops.data = _isEmptyObject( ops.data ) ? '' : _serialize( ops.data ) ;
-
-		//超时检测
-		ops.timeout = typeof ops.timeout === 'boolean' ? ( ops.timeout === true ? 5000 : false) : (typeof ops.timeout === 'string' || typeof ops.timeout === 'number' ? ( parseInt(ops.timeout, 10) == 0 || parseInt(ops.timeout, 10) <= 5000 ? false : parseInt(ops.timeout, 10) ) : parseInt(ops.timeout, 10) );
-		if( !!ops.timeout ) {
-			timerID = setTimeout(function() {
-				if ( xhr.readyState != 4 ) {
-					timeIsOut = true;
-					xhr.abort();
-					var confirmBol = confirm('请求超时\n点击确定自动刷新本页\n点击取消手动刷新')
-					if( confirmBol ) {
-						window.location.reload();
-					}
-					clearTimeout(timerID);
-				}
-			}, ops.timeout );
-		}
-
-		if ( /post/i.test( ops.type ) ) {
-			xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-			xhr.send( ops.data );
 		} else {
-			xhr.send( null );
+			ops.error( xhr )
 		}
 	}
-}());
+	ops.data = _isEmptyObject( ops.data ) ? '' : _serialize( ops.data ) ;
 
-;var _post = (function () {
-	return function ( url, data, callback, dataType ) {
-		var ops = {};
-			ops.url = url;
-			ops.data = data;
-			ops.success = callback
-			ops.type = 'post';
-			ops.dataType = dataType
-
-		if( _isFunction( data )  ) {
-			ops.success = data;
-			ops.data = ''
-		}
-		if ( typeof callback === 'string' && _isFunction( data ) ) {
-			ops.dataType = callback
-		}
-		_ajax( ops );
+	//超时检测
+	ops.timeout = typeof ops.timeout === 'boolean' ? ( ops.timeout === true ? 5000 : false) : (typeof ops.timeout === 'string' || typeof ops.timeout === 'number' ? ( parseInt(ops.timeout, 10) == 0 || parseInt(ops.timeout, 10) <= 5000 ? false : parseInt(ops.timeout, 10) ) : parseInt(ops.timeout, 10) );
+	if( !!ops.timeout ) {
+		timerID = setTimeout(function() {
+			if ( xhr.readyState != 4 ) {
+				timeIsOut = true;
+				xhr.abort();
+				var confirmBol = confirm('请求超时\n点击确定自动刷新本页\n点击取消手动刷新')
+				if( confirmBol ) {
+					window.location.reload();
+				}
+				clearTimeout(timerID);
+			}
+		}, ops.timeout );
 	}
-} ());
-;var _get = (function () {
-	return function ( url, data, callback, dataType ) {
-		var ops = {};
-			ops.url = url;
-			ops.data = data;
-			ops.success = callback;
-			ops.type = 'get';
-			ops.dataType = dataType;
 
-		if( _isFunction( data ) ) {
-			ops.success = data;
-			ops.data = ''
-		}
-		if ( typeof callback === 'string' && _isFunction( data ) ) {
-			ops.dataType = callback
-		}
-		_ajax( ops );
+	if ( /post/i.test( ops.type ) ) {
+		xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+		xhr.send( ops.data );
+	} else {
+		xhr.send( null );
 	}
-} ());
-;var _animate = (function (){
+	}
+
+function _post( url, data, callback, dataType ) {
+	var ops = {};
+		ops.url = url;
+		ops.data = data;
+		ops.success = callback
+		ops.type = 'post';
+		ops.dataType = dataType
+
+	if( _isFunction( data )  ) {
+		ops.success = data;
+		ops.data = ''
+	}
+	if ( typeof callback === 'string' && _isFunction( data ) ) {
+		ops.dataType = callback
+	}
+	_ajax( ops );
+}
+function _get( url, data, callback, dataType ) {
+	var ops = {};
+		ops.url = url;
+		ops.data = data;
+		ops.success = callback;
+		ops.type = 'get';
+		ops.dataType = dataType;
+
+	if( _isFunction( data ) ) {
+		ops.success = data;
+		ops.data = ''
+	}
+	if ( typeof callback === 'string' && _isFunction( data ) ) {
+		ops.dataType = callback
+	}
+	_ajax( ops );
+}
+// 动画
+
+/*
+_animate(obj, {width:100px}, 2000, 'linear', fn)
+
+ */
+;var __animate = (function (){
 	var Tween = {
 		//匀速
 		linear: function(t, b, c, d) {
@@ -1338,108 +1569,189 @@ var _getField = (function () {
 		return  (+new Date)
 	}
 	var duration = 200;
-	return function ( obj, ops, time, easing, fn ) {
-		if( !obj || obj.nodeType !== 1 || !ops ) return;
+	return {
+		_animate: function ( obj, ops, time, easing, fn ) {
+			if( !obj || obj.nodeType !== 1 || !ops ) return;
 
-		if( !time && _isFunction( easing ) ) {
-			fn = easing;
-			time = duration;
-			easing = 'linear';
-		}
-		if( _isFunction( easing ) ) {
-			fn = easing;
-			easing = 'linear'
-		}
-		if( !time ) {
-			time = duration
-		}
-		if( !easing ) {
-			easing = 'linear'
-		}
-		time = parseInt( time );
-		fn = fn || noop;
-		// 缓存
-		var id = globalCache.getGid(obj, 'animateName');
-		//获取缓存
-		var set = globalCache.animateCache[ id ] = globalCache.animateCache[ id ] ? 
-					globalCache.animateCache[ id ] : {};
-		// 动画开始时间
-		var startTime = createTime();
-		var animatePre = '' + startTime;	
-		// 缓存数据
-		set[ animatePre ] = {
-			timerId: null,
-			status: false
-		}
-		// 缓存格式, 利用时间戳来做判断依据		
-		// animateCache = {
-		// 	startTime: {
-		// 		timerId: null,
-		//  	status: false  执行过程中设为ture
-		// 	}
-		// }		
-		// console.log( set )
-		function step () {
-			//每次变化的时间 初始时间 + 预设时间 - 当前时间
-			var changTime = time - Math.max(0, startTime + time - createTime());
-			var value;
-			set[ animatePre ].status = true;
-			for( var i in ops ) {
-				value = Tween[ easing ]( changTime, tmpJson[ i ], parseFloat(ops[ i ]) - tmpJson[ i ], time );
-				_css( obj, i, parseFloat(value) )
+			if( !time && _isFunction( easing ) ) {
+				fn = easing;
+				time = duration;
+				easing = 'linear';
 			}
-			if( changTime < time ) {
-				requestAnimationFrame( step );
-			} else {
-				cancelAnimationFrame( set[ animatePre ].timerId );
-				
-				set[ animatePre ].status = false;
-				fn&&fn.call(obj);
+			if( _isFunction( easing ) ) {
+				fn = easing;
+				easing = 'linear'
+			}
+			if( !time ) {
+				time = duration
+			}
+			if( !easing ) {
+				easing = 'linear'
+			}
+			time = parseInt( time );
+			fn = fn || noop;
+			// 缓存
+			var id = globalCache.getGid(obj, 'animateName');
+			//获取缓存
+			var set = globalCache.animateCache[ id ] = globalCache.animateCache[ id ] ? 
+						globalCache.animateCache[ id ] : {};
+			// 动画开始时间
+			var startTime = createTime();
+			var animatePre = '' + startTime;	
+			// 缓存数据
+			set[ animatePre ] = {
+				timerId: null,
+				status: false
+			}
+			// 缓存格式, 利用时间戳来做判断依据		
+			// animateCache = {
+			// 	startTime: {
+			// 		timerId: null,
+			//  	status: false  执行过程中设为ture
+			// 	}
+			// }		
+			// console.log( set )
+			function step () {
+				//每次变化的时间 初始时间 + 预设时间 - 当前时间
+				var changTime = time - Math.max(0, startTime + time - createTime());
+				var value;
+				set[ animatePre ].status = true;
+				for( var i in ops ) {
+					value = Tween[ easing ]( changTime, tmpJson[ i ], parseFloat(ops[ i ]) - tmpJson[ i ], time );
+					_css( obj, i, parseFloat(value) )
+				}
+				if( changTime < time ) {
+					requestAnimationFrame( step );
+				} else {
+					cancelAnimationFrame( set[ animatePre ].timerId );
+					
+					set[ animatePre ].status = false;
+					fn&&fn.call(obj);
 
-				// 动画执行结束删除缓存
-				delete set[ animatePre ];
+					// 动画执行结束删除缓存
+					delete set[ animatePre ];
+				}
+			}
+			var i, tmpJson = {};
+			cancelAnimationFrame( set[ animatePre ].timerId )
+			for( i in ops ) {
+				tmpJson[ i ] = parseFloat( _css( obj, i ) );
+			}
+			set[ animatePre ].timerId = requestAnimationFrame( step );
+
+			return obj;
+		},
+		_stop: function ( obj ) {
+			var id = globalCache.getGid(obj, 'animateName');
+			var set = globalCache.animateCache[ id ];
+			var i;
+			for( var i in set ) {
+				if( set[ i ].status === true ) {
+					cancelAnimationFrame( set[ i ].timerId );
+					delete set[ i ];
+				}
 			}
 		}
-		var i, tmpJson = {};
-		cancelAnimationFrame( set[ animatePre ].timerId )
-		for( i in ops ) {
-			tmpJson[ i ] = parseFloat( _css( obj, i ) );
-		}
-		set[ animatePre ].timerId = requestAnimationFrame( step );
-
-		return obj;
 	}
 }());
 
-var _stop = (function () {
-	return function ( obj ) {
-		var id = globalCache.getGid(obj, 'animateName');
-		var set = globalCache.animateCache[ id ];
-		var i;
-		for( var i in set ) {
-			if( set[ i ].status === true ) {
-				cancelAnimationFrame( set[ i ].timerId );
-				delete set[ i ];
+//元素属性
+
+
+/**
+ * 属性名不区分大小大
+ * @param  
+ * @return 
+ */
+
+/*
+
+_attr( obj, 'test', '123')
+设置 obj 属性 test='123'
+返回 obj
+
+_attr( obj, 'test', null)
+删除obj.test 属性
+返回 obj
+
+_attr( obj, test )
+获取 obj 属性test的值
+返回属性值
+ */
+;var _attr = (function () {
+	var clsFix = /^class$/i;
+
+	return function ( obj, attr, val ) {
+		var ret;
+		var clsBool = clsFix.test(attr);
+		if( !obj && obj.nodeType !== 1 && attr === undefined ) return;
+		// 设置
+		if( val !== undefined ) {
+			if( val === null ) {
+				obj.removeAttribute( attr );
+			} else {
+				if( typeof val !== 'string' ) {
+					val = JSON.stringify(val);
+				}
+				if( clsBool ) {
+					_class(obj, val)
+				} else {
+					obj.setAttribute( attr, val );
+				}
 			}
+			return obj;
+		} else { // 获取
+			if( clsBool ) {
+				ret = obj.className;
+			} else {
+				ret = obj.getAttribute( attr );
+			}
+			return ret;
 		}
 	}
-});
+}());
 
+// var _removeAttr = (function () {
+// 	return function ( obj, attr ) {
+// 		if( !obj && obj.nodeType !== 1 && attr === undefined ) return;
+// 		if( obj.hasAttribute( attr ) ) {
+// 			obj.removeAttribute( attr );
+// 		}
+// 		return obj;		
+// 	}
+
+// }());
 // data
 
 
+//设置 都会返回当前节点
+//获取 返回需要获取的数据
 /* 
-_data( obj, 'test', 'a') // data-test = a
-_data( obj, 'test', {a:1, b:2}) // data-test = {a:1, b:2}
-_data( obj, 'test', [0, 1, 2]) // data-test = [0, 1, 2]
+_data( obj, 'test', 'a') 
+data-test = a 
+return obj
+
+_data( obj, 'test', {a:1, b:2}) 
+data-test = {a:1, b:2} 
+return obj
+
+_data( obj, 'test', [0, 1, 2])
+data-test = [0, 1, 2] 
+return obj
+
+==========
+
+_data( obj, 'test')
+返回绑定obj上 key 为 test 的 数据 
 
 
-
+_data( obj, 'test', null)
+返回 obj,  并删除绑定到obj上key为test的数据 
 */
 
 ;var _data = (function () {
 	return function ( obj, key, val ) {
-		if( !obj || obj.nodeType !== 1 || !key || typeof key !== 'string' ) return;
+		if( !obj || obj.nodeType !== 1 || key === undefined || typeof key === 'object' ) return;
 		// 缓存
 		var id = globalCache.getGid(obj, 'dateName');
 		//获取缓存
@@ -1480,20 +1792,21 @@ utils =  {
 	,getEle        : _getElement
 	,getElement    : _getElement
 	,css           : _css
-	,hasClass      : _hasClass
-	,addClass      : _addClass
-	,removeClass   : _removeClass
-	,on            : _on
-	,off           : _off
-	,one           : _one
-	,trigger       : _trigger
+	,hasClass      : __class._hasClass
+	,addClass      : __class._addClass
+	,removeClass   : __class._removeClass
+	,on            : __event._on
+	,off           : __event._off
+	,one           : __event._one
+	,trigger       : __event._trigger
 	,getField      : _getField
 	,serialize     : _serialize
 	,ajax          : _ajax
 	,post          : _post
 	,get           : _get
-	,animate       : _animate
-	,stop          : _stop
+	,animate       : __animate._animate
+	,stop          : __animate._stop
+	,attr          : _attr
 	,data          : _data
 }
 window.utils = utils;
