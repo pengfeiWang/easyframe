@@ -258,5 +258,5 @@ var __event = (function () {
 			return obj;
 		}
 	}
-});
+}());
 
