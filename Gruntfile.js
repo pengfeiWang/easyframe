@@ -61,6 +61,8 @@ module.exports = function (grunt) {
 						,'src/ajax/ajax.js'
 						//动画系统
 						,'src/animate/animate.js'
+						//动画系统
+						,'src/data/data.js'
 						//对外api
 						,'src/api.js'
 						,'src/close.js'

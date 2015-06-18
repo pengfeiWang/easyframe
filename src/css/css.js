@@ -57,6 +57,7 @@ var _css = (function () {
 	 * @return 
 	 */
 	var setStyle = function ( obj, attr, value ) {
+
 		if( attr === 'opacity' ) {
 			if( window.getComputedStyle ) {
 				obj.style[attr] = value
@@ -65,6 +66,10 @@ var _css = (function () {
 			}
 			
 		} else {
+			// value 有可能是负值, ie8 以下的版本需要处理, 用当前元素值 + 负值, 得到正常值
+			if( value < 0 && _browser.version <= 8 ) {
+				value += parseFloat( _css( obj, attr ) );
+			}
 			obj.style[attr] = addPx(attr, value);
 		}
 	};

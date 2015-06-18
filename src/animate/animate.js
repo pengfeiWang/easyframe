@@ -147,7 +147,7 @@
 	}
 	var duration = 200;
 	return function ( obj, ops, time, easing, fn ) {
-		if( !obj || !ops ) return;
+		if( !obj || obj.nodeType !== 1 || !ops ) return;
 
 		if( !time && _isFunction( easing ) ) {
 			fn = easing;

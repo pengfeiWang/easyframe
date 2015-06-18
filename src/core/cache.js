@@ -20,9 +20,7 @@ var globalCache = {
 	//
 	elemOldStatus: {},
 	getGid       : function ( elem, typeName ) {
-
-		typeName = typeName || globalCache[ 'eventName' ];
-
+		typeName = globalCache[ typeName ] || globalCache[ 'eventName' ];
 		return elem[ '__$gid' + typeName ] || ( elem[ '__$gid' + typeName ] = globalCache.guid[ typeName ]++ );
 	}
 };

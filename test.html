@@ -52,7 +52,9 @@ utils.animate(frm, {
 	width:'200px'
 },2000, 'elasticOut', function () {
 	console.log( this )
-})
+});
+
+console.log( utils.data( frm, 'test', {a:1} ) )
 </script>
 </body>
 </html>

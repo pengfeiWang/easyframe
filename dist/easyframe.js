@@ -1,7 +1,7 @@
 /*! ============================================= 
     project: easyframe  
     version: 0.1.1 
-    update: 2015-06-17 
+    update: 2015-06-18 
     author: pengfeiWang 
 ==================================================  */
 ;(function ( window, factory ) {
@@ -95,9 +95,7 @@ var globalCache = {
 	//
 	elemOldStatus: {},
 	getGid       : function ( elem, typeName ) {
-
-		typeName = typeName || globalCache[ 'eventName' ];
-
+		typeName = globalCache[ typeName ] || globalCache[ 'eventName' ];
 		return elem[ '__$gid' + typeName ] || ( elem[ '__$gid' + typeName ] = globalCache.guid[ typeName ]++ );
 	}
 };
@@ -251,7 +249,7 @@ function _inArray( arr, key ) {
 	}
 	return arr.indexOf( key ) > -1 ? true : false;
 };
-//与jQuery.extend方法，可用于浅拷贝，深拷贝
+//偷jQuery.extend方法，可用于浅拷贝，深拷贝
 function _extend () {
 	var options, name, src, copy, copyIsArray, clone,
 		target = arguments[ 0 ] || {},
@@ -268,7 +266,7 @@ function _extend () {
 	if ( typeof target !== 'object' && _getType(target) !== 'function' ) {
 		target = {}
 	}
-	//如果只有一个参数，那么新成员添加于mix所在的对象上
+	//如果只有一个参数立即返回
 	if ( i === length ) {
 		return target;
 		// target = this
@@ -425,6 +423,7 @@ var _browser;
 /*======================
 		class	
 ======================*/
+
 // var cls = (function (){
 	
 // })();
@@ -527,6 +526,7 @@ var _css = (function () {
 	 * @return 
 	 */
 	var setStyle = function ( obj, attr, value ) {
+
 		if( attr === 'opacity' ) {
 			if( window.getComputedStyle ) {
 				obj.style[attr] = value
@@ -535,6 +535,10 @@ var _css = (function () {
 			}
 			
 		} else {
+			// value 有可能是负值, ie8 以下的版本需要处理, 用当前元素值 + 负值, 得到正常值
+			if( value < 0 && _browser.version <= 8 ) {
+				value += parseFloat( _css( obj, attr ) );
+			}
 			obj.style[attr] = addPx(attr, value);
 		}
 	};
@@ -1335,7 +1339,7 @@ var _getField = (function () {
 	}
 	var duration = 200;
 	return function ( obj, ops, time, easing, fn ) {
-		if( !obj || !ops ) return;
+		if( !obj || obj.nodeType !== 1 || !ops ) return;
 
 		if( !time && _isFunction( easing ) ) {
 			fn = easing;
@@ -1421,6 +1425,45 @@ var _stop = (function () {
 	}
 });
 
+// data
+
+
+/* 
+_data( obj, 'test', 'a') // data-test = a
+_data( obj, 'test', {a:1, b:2}) // data-test = {a:1, b:2}
+_data( obj, 'test', [0, 1, 2]) // data-test = [0, 1, 2]
+
+
+
+*/
+
+;var _data = (function () {
+	return function ( obj, key, val ) {
+		if( !obj || obj.nodeType !== 1 || !key || typeof key !== 'string' ) return;
+		// 缓存
+		var id = globalCache.getGid(obj, 'dateName');
+		//获取缓存
+		var set = globalCache.dataCache[ id ] = globalCache.dataCache[ id ] ? 
+					globalCache.dataCache[ id ] : globalCache.dataCache[ id ] = {};
+
+		
+		var ret;
+		key = 'data-' + key; 
+
+		if( val === undefined ) { // 获取, 返回查询到的数据
+			ret = set[ key ];
+			return ret;
+		} else { // 设置
+			// 返回dom节点
+			if( val === null ) { // val === null 则认为删除数据
+				delete set[ key ];
+			} else { // 设置数据
+				set[ key ] = val
+			}
+			return obj;
+		}
+	}
+}());
 utils =  {
 	globalCache : globalCache
 	,browser       : _browser
@@ -1451,6 +1494,7 @@ utils =  {
 	,get           : _get
 	,animate       : _animate
 	,stop          : _stop
+	,data          : _data
 }
 window.utils = utils;
 return utils;
