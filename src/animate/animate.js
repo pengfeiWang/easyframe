@@ -151,6 +151,11 @@ _animate(obj, {width:100px}, 2000, 'linear', fn)
 	var createTime = function(){
 		return  (+new Date)
 	}
+	var isSet = {
+		display : !0,
+		'z-index': !0,
+		zIndex: !0
+	}
 	var duration = 200;
 	return {
 		_animate: function ( obj, ops, time, easing, fn ) {
@@ -186,6 +191,7 @@ _animate(obj, {width:100px}, 2000, 'linear', fn)
 				timerId: null,
 				status: false
 			}
+
 			// 缓存格式, 利用时间戳来做判断依据		
 			// animateCache = {
 			// 	startTime: {
@@ -197,11 +203,11 @@ _animate(obj, {width:100px}, 2000, 'linear', fn)
 			function step () {
 				//每次变化的时间 初始时间 + 预设时间 - 当前时间
 				var changTime = time - Math.max(0, startTime + time - createTime());
-				var value;
+				var value, target;
 				set[ animatePre ].status = true;
 				for( var i in ops ) {
-					value = Tween[ easing ]( changTime, tmpJson[ i ], parseFloat(ops[ i ]) - tmpJson[ i ], time );
-					_css( obj, i, parseFloat(value) )
+					value = isSet[ i ] ? ops[ i ] : Tween[ easing ]( changTime, tmpJson[ i ], ops[ i ] - tmpJson[ i ], time );
+					_css( obj, i, value );
 				}
 				if( changTime < time ) {
 					requestAnimationFrame( step );
@@ -217,11 +223,26 @@ _animate(obj, {width:100px}, 2000, 'linear', fn)
 			}
 			var i, tmpJson = {};
 			cancelAnimationFrame( set[ animatePre ].timerId )
+
+			
+
+
 			for( i in ops ) {
-				tmpJson[ i ] = parseFloat( _css( obj, i ) );
+				if( i === 'opacity' ) {
+					tmpJson[ i ] = 0;
+					ops[ i ] = parseFloat( ops[ i ] ) / 100;
+				} else {
+					tmpJson[ i ] = isSet[ i ] ? _css( obj, i ) : parseFloat( _css( obj, i ) );
+					if( isSet[ i ] ) {
+						tmpJson[ i ] = _css( obj, i );
+					} else {
+						tmpJson[ i ]  = parseFloat( _css( obj, i ) );
+						ops[ i ] = parseFloat( ops[ i ] );
+					}
+					// tmpJson[ i ] = _css( obj, i );
+				}
 			}
 			set[ animatePre ].timerId = requestAnimationFrame( step );
-
 			return obj;
 		},
 		_stop: function ( obj ) {
