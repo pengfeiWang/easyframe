@@ -229,7 +229,7 @@ _animate(obj, {width:100px}, 2000, 'linear', fn)
 
 			for( i in ops ) {
 				if( i === 'opacity' ) {
-					tmpJson[ i ] = 0;
+					tmpJson[ i ] = ops[ i ] > 1 ? 0 : 100;
 					ops[ i ] = parseFloat( ops[ i ] ) / 100;
 				} else {
 					tmpJson[ i ] = isSet[ i ] ? _css( obj, i ) : parseFloat( _css( obj, i ) );
