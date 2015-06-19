@@ -258,8 +258,8 @@ var __event = (function () {
 			return obj;
 		},
 		_evtStop: function ( e ) {
-			object.preventDefault( e );
-			object.stopPropagation( e );
+			object._preventDefault( e );
+			object._stopPropagation( e );
 		},
 		_preventDefault: function ( e ) {
 			if ( e.preventDefault ) {
