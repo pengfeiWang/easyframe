@@ -1,7 +1,7 @@
 /*! ============================================= 
     project: easyframe  
     version: 0.1.1 
-    update: 2015-06-18 
+    update: 2015-06-19 
     author: pengfeiWang 
 ==================================================  */
 ;(function ( window, factory ) {
@@ -254,7 +254,21 @@ var rword = /[^, ]+/g,
 	indexOf      = emptyArray.indexOf,
 	slice        = emptyArray.slice,
 	splice       = emptyArray.splice,
-	concat       = emptyArray.concat;
+	concat       = emptyArray.concat,
+	cssNumber = {
+		'columncount': !0,
+		'fontweight': !0,
+		'lineheight': !0,
+		'column-count': !0,
+		'font-weight': !0,
+		'line-height': !0,
+		'opacity': !0,
+		'orphans': !0,
+		'widows': !0,
+		'zIndex': !0,
+		'z-index': !0,
+		'zoom': !0
+	};
 	function noop() {}
 	/**
 	 * [regWordBorder 单词边距正则]
@@ -638,7 +652,7 @@ var __class = (function () {
 			return false;
 		}
 	}
-});
+}());
 
 // css
 
@@ -679,20 +693,7 @@ var _css = (function () {
 		}
 		return name
 	}
-	var cssNumber = {
-		'columncount': !0,
-		'fontweight': !0,
-		'lineheight': !0,
-		'column-count': !0,
-		'font-weight': !0,
-		'line-height': !0,
-		'opacity': !0,
-		'orphans': !0,
-		'widows': !0,
-		'zIndex': !0,
-		'z-index': !0,
-		'zoom': !0
-	};
+	
 
 
 	var getBounding = function ( node ) {
@@ -718,7 +719,7 @@ var _css = (function () {
 
 		if( attr === 'opacity' ) {
 			if( window.getComputedStyle ) {
-				obj.style[attr] = value
+				obj.style[attr] = value > 1 ? value /100 : value
 			} else {
 				setOpacity(obj, value);
 			}
@@ -739,10 +740,15 @@ var _css = (function () {
 	};
 
 	function getOpacity ( node ) {
-		//这是最快的获取IE透明值的方式，不需要动用正则了！
-		var alpha = node.filters.alpha || node.filters[salpha],
-			op = alpha && alpha.enabled ? alpha.opacity : 100
-		return (op / 100) + '' //确保返回的是字符串
+		var alpha, op;
+		if( window.getComputedStyle ) {
+			op = window.getComputedStyle( node, null)['opacity'];
+		} else {
+			alpha = node.filters.alpha || node.filters[salpha];
+			op = alpha && alpha.enabled ? alpha.opacity : 100;
+			op = (op / 100) + '';//确保返回的是字符串
+		}
+		return op 
 	};
 	function setOpacity ( node, val ) {
 		var style = node.style
@@ -772,6 +778,10 @@ var _css = (function () {
 		outerHeight: outerHeight
 	}
 	function getStyle ( obj, attr ) {
+		if( rGet.test(attr) ) {
+			return getMaps[attr](obj);
+		}
+			
 		if( window.getComputedStyle ) {
 			style = getComputedStyle(obj, null);
 			if (style) {
@@ -782,9 +792,7 @@ var _css = (function () {
 			}
 			return ret
 		} else {
-			if( rGet.test(attr) ) {
-				return getMaps[attr](obj);
-			}
+			
 			var currentStyle = obj.currentStyle
 			ret = currentStyle[attr];
 			// 非 px 单位 ,  非 left 等
@@ -840,7 +848,6 @@ var _css = (function () {
 		// value 目标值
 		// 设置
 		if(typeof ops === 'string' && value ) {
-
 			setStyle(elem, cssName(ops), value);
 			return elem;
 		}
@@ -858,7 +865,7 @@ var _css = (function () {
 		//else { //获取
 			// return getStyle(elem, cssName(ops));
 		// }
-		console.log( 'css---' )
+		// console.log( 'css---' )
 		return elem;
 	}
 })();
@@ -919,7 +926,7 @@ var __event = (function () {
 		}
 		return event;
 	}
-	return {
+	var object = {
 		/**
 		 * 绑定事件
 		 * @param  obj     dom对象
@@ -1121,9 +1128,28 @@ var __event = (function () {
 				}
 			}
 			return obj;
+		},
+		_evtStop: function ( e ) {
+			object.preventDefault( e );
+			object.stopPropagation( e );
+		},
+		_preventDefault: function ( e ) {
+			if ( e.preventDefault ) {
+				e.preventDefault();
+			} else {
+				e.returnValue = false;
+			}
+		},
+		_stopPropagation: function ( e ) {
+			if ( e.stopPropagation ) {
+				e.stopPropagation();
+			} else {
+				e.cancelBubble = true;
+			}
 		}
 	}
-});
+	return object;
+}());
 
 
 //获取有效的表单字段, 或dom节点内的 input select等标签的value, 并转成 key-value
@@ -1568,6 +1594,11 @@ _animate(obj, {width:100px}, 2000, 'linear', fn)
 	var createTime = function(){
 		return  (+new Date)
 	}
+	var isSet = {
+		display : !0,
+		'z-index': !0,
+		zIndex: !0
+	}
 	var duration = 200;
 	return {
 		_animate: function ( obj, ops, time, easing, fn ) {
@@ -1603,6 +1634,7 @@ _animate(obj, {width:100px}, 2000, 'linear', fn)
 				timerId: null,
 				status: false
 			}
+
 			// 缓存格式, 利用时间戳来做判断依据		
 			// animateCache = {
 			// 	startTime: {
@@ -1614,11 +1646,11 @@ _animate(obj, {width:100px}, 2000, 'linear', fn)
 			function step () {
 				//每次变化的时间 初始时间 + 预设时间 - 当前时间
 				var changTime = time - Math.max(0, startTime + time - createTime());
-				var value;
+				var value, target;
 				set[ animatePre ].status = true;
 				for( var i in ops ) {
-					value = Tween[ easing ]( changTime, tmpJson[ i ], parseFloat(ops[ i ]) - tmpJson[ i ], time );
-					_css( obj, i, parseFloat(value) )
+					value = isSet[ i ] ? ops[ i ] : Tween[ easing ]( changTime, tmpJson[ i ], ops[ i ] - tmpJson[ i ], time );
+					_css( obj, i, value );
 				}
 				if( changTime < time ) {
 					requestAnimationFrame( step );
@@ -1634,11 +1666,26 @@ _animate(obj, {width:100px}, 2000, 'linear', fn)
 			}
 			var i, tmpJson = {};
 			cancelAnimationFrame( set[ animatePre ].timerId )
+
+			
+
+
 			for( i in ops ) {
-				tmpJson[ i ] = parseFloat( _css( obj, i ) );
+				if( i === 'opacity' ) {
+					tmpJson[ i ] = 0;
+					ops[ i ] = parseFloat( ops[ i ] ) / 100;
+				} else {
+					tmpJson[ i ] = isSet[ i ] ? _css( obj, i ) : parseFloat( _css( obj, i ) );
+					if( isSet[ i ] ) {
+						tmpJson[ i ] = _css( obj, i );
+					} else {
+						tmpJson[ i ]  = parseFloat( _css( obj, i ) );
+						ops[ i ] = parseFloat( ops[ i ] );
+					}
+					// tmpJson[ i ] = _css( obj, i );
+				}
 			}
 			set[ animatePre ].timerId = requestAnimationFrame( step );
-
 			return obj;
 		},
 		_stop: function ( obj ) {
