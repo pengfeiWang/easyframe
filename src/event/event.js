@@ -54,7 +54,7 @@ var __event = (function () {
 		}
 		return event;
 	}
-	return {
+	var object = {
 		/**
 		 * 绑定事件
 		 * @param  obj     dom对象
@@ -256,7 +256,26 @@ var __event = (function () {
 				}
 			}
 			return obj;
+		},
+		_evtStop: function ( e ) {
+			object.preventDefault( e );
+			object.stopPropagation( e );
+		},
+		_preventDefault: function ( e ) {
+			if ( e.preventDefault ) {
+				e.preventDefault();
+			} else {
+				e.returnValue = false;
+			}
+		},
+		_stopPropagation: function ( e ) {
+			if ( e.stopPropagation ) {
+				e.stopPropagation();
+			} else {
+				e.cancelBubble = true;
+			}
 		}
 	}
+	return object;
 }());
 
