@@ -37,20 +37,7 @@ var _css = (function () {
 		}
 		return name
 	}
-	var cssNumber = {
-		'columncount': !0,
-		'fontweight': !0,
-		'lineheight': !0,
-		'column-count': !0,
-		'font-weight': !0,
-		'line-height': !0,
-		'opacity': !0,
-		'orphans': !0,
-		'widows': !0,
-		'zIndex': !0,
-		'z-index': !0,
-		'zoom': !0
-	};
+	
 
 
 	var getBounding = function ( node ) {
@@ -76,7 +63,7 @@ var _css = (function () {
 
 		if( attr === 'opacity' ) {
 			if( window.getComputedStyle ) {
-				obj.style[attr] = value
+				obj.style[attr] = value > 1 ? value /100 : value
 			} else {
 				setOpacity(obj, value);
 			}
@@ -97,10 +84,15 @@ var _css = (function () {
 	};
 
 	function getOpacity ( node ) {
-		//这是最快的获取IE透明值的方式，不需要动用正则了！
-		var alpha = node.filters.alpha || node.filters[salpha],
-			op = alpha && alpha.enabled ? alpha.opacity : 100
-		return (op / 100) + '' //确保返回的是字符串
+		var alpha, op;
+		if( window.getComputedStyle ) {
+			op = window.getComputedStyle( node, null)['opacity'];
+		} else {
+			alpha = node.filters.alpha || node.filters[salpha];
+			op = alpha && alpha.enabled ? alpha.opacity : 100;
+			op = (op / 100) + '';//确保返回的是字符串
+		}
+		return op 
 	};
 	function setOpacity ( node, val ) {
 		var style = node.style
@@ -130,6 +122,10 @@ var _css = (function () {
 		outerHeight: outerHeight
 	}
 	function getStyle ( obj, attr ) {
+		if( rGet.test(attr) ) {
+			return getMaps[attr](obj);
+		}
+			
 		if( window.getComputedStyle ) {
 			style = getComputedStyle(obj, null);
 			if (style) {
@@ -140,9 +136,7 @@ var _css = (function () {
 			}
 			return ret
 		} else {
-			if( rGet.test(attr) ) {
-				return getMaps[attr](obj);
-			}
+			
 			var currentStyle = obj.currentStyle
 			ret = currentStyle[attr];
 			// 非 px 单位 ,  非 left 等
@@ -198,7 +192,6 @@ var _css = (function () {
 		// value 目标值
 		// 设置
 		if(typeof ops === 'string' && value ) {
-
 			setStyle(elem, cssName(ops), value);
 			return elem;
 		}
