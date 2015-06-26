@@ -22,7 +22,7 @@ var rword = /[^, ]+/g,
 		'opacity': !0,
 		'orphans': !0,
 		'widows': !0,
-		'zIndex': !0,
+		'zindex': !0,
 		'z-index': !0,
 		'zoom': !0
 	};
