@@ -1655,6 +1655,9 @@ _animate(obj, {width:100px}, 2000, 'linear', fn)
 				//每次变化的时间 初始时间 + 预设时间 - 当前时间
 				var changTime = time - Math.max(0, startTime + time - createTime());
 				var value, target;
+
+				if( !set[ animatePre ] ) return;
+				
 				set[ animatePre ].status = true;
 				for( var i in ops ) {
 					value = isSet[ i ] ? ops[ i ] : Tween[ easing ]( changTime, tmpJson[ i ], ops[ i ] - tmpJson[ i ], time );
