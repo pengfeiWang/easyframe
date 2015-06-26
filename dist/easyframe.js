@@ -1,7 +1,7 @@
 /*! ============================================= 
     project: easyframe  
     version: 0.1.1 
-    update: 2015-06-19 
+    update: 2015-06-26 
     author: pengfeiWang 
 ==================================================  */
 ;(function ( window, factory ) {
@@ -265,7 +265,7 @@ var rword = /[^, ]+/g,
 		'opacity': !0,
 		'orphans': !0,
 		'widows': !0,
-		'zIndex': !0,
+		'zindex': !0,
 		'z-index': !0,
 		'zoom': !0
 	};
@@ -593,6 +593,9 @@ var _browser;
 		}
 		return tmp;
 	} else {
+		if( _browser.version <= 8 ) {
+			return context.getElementsByTagName(select)
+		}
 		// return context.getElementsByTagName(select);
 		return slice.call( context.getElementsByTagName(select) )
 		// return ;
@@ -716,6 +719,7 @@ var _css = (function () {
 	 * @return 
 	 */
 	var setStyle = function ( obj, attr, value ) {
+		var tmpNum = 0;
 
 		if( attr === 'opacity' ) {
 			if( window.getComputedStyle ) {
@@ -726,8 +730,9 @@ var _css = (function () {
 			
 		} else {
 			// value 有可能是负值, ie8 以下的版本需要处理, 用当前元素值 + 负值, 得到正常值
-			if( value < 0 && _browser.version <= 8 ) {
-				value += parseFloat( _css( obj, attr ) );
+			if( value < 0 && _browser.version <= 8 && /^(width|height)$/i.test(attr) ) {
+				tmpNum = parseFloat( _css( obj, attr ) );
+				value +=  isNaN( tmpNum ) ? 0 : tmpNum ;
 			}
 			obj.style[attr] = addPx(attr, value);
 		}
@@ -955,7 +960,10 @@ var __event = (function () {
 				if ( obj.addEventListener ) {
 					obj.addEventListener(ev, fn, !!capture);
 				} else if ( obj.attachEvent ) {
-					obj.attachEvent('on' + ev, fn);
+					obj.attachEvent('on' + ev, function ( e ){
+						var e = e || window.event
+						fn.call(obj, e)
+					});
 				} else {
 					obj[ 'on' + ev ] = fn;
 				}
@@ -1672,7 +1680,7 @@ _animate(obj, {width:100px}, 2000, 'linear', fn)
 
 			for( i in ops ) {
 				if( i === 'opacity' ) {
-					tmpJson[ i ] = ops[ i ] > 1 ? 0 : 1;
+					tmpJson[ i ] = ops[ i ] > 1 ? 0 : 100;
 					ops[ i ] = parseFloat( ops[ i ] ) / 100;
 				} else {
 					tmpJson[ i ] = isSet[ i ] ? _css( obj, i ) : parseFloat( _css( obj, i ) );
