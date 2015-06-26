@@ -83,7 +83,10 @@ var __event = (function () {
 				if ( obj.addEventListener ) {
 					obj.addEventListener(ev, fn, !!capture);
 				} else if ( obj.attachEvent ) {
-					obj.attachEvent('on' + ev, fn);
+					obj.attachEvent('on' + ev, function ( e ){
+						var e = e || window.event
+						fn.call(obj, e)
+					});
 				} else {
 					obj[ 'on' + ev ] = fn;
 				}
