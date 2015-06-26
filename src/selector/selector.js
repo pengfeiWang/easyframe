@@ -32,6 +32,9 @@
 		}
 		return tmp;
 	} else {
+		if( _browser.version <= 8 ) {
+			return context.getElementsByTagName(select)
+		}
 		// return context.getElementsByTagName(select);
 		return slice.call( context.getElementsByTagName(select) )
 		// return ;
