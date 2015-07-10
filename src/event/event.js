@@ -24,6 +24,26 @@ var __event = (function () {
 		}
 		return bool;
 	}
+	function  ieInput(obj, fn) {
+		return function (e){
+			var e = e || window.event;
+			if (e.propertyName.toLowerCase() == "value") {
+				if(!obj.strL) {
+					obj.strL = [];
+				}
+				if( obj.strL.length>=2 ) {
+					obj.strL.splice(0, 1, obj.strL[1]);
+					obj.strL.splice(1, 1, obj.value.length);
+				} else {
+					obj.strL.push(obj.value.length);
+				}
+				if(obj.strL.length>=2) {
+					if( obj.strL[0]==obj.strL[1] ) {return;}
+				}
+				return fn.call(obj, e);
+			}
+		} 
+	}
 	// 创建 事件
 	function createEvent ( ev/*, props */ ) {
 		// document.createEvent || document.createEventObject
@@ -54,7 +74,6 @@ var __event = (function () {
 		}
 		return event;
 	}
-	var object = {
 		/**
 		 * 绑定事件
 		 * @param  obj     dom对象
@@ -64,7 +83,7 @@ var __event = (function () {
 		 * @param  one     内部使用, 是否来自 one函数
 		 * @return 返回 obj
 		 */
-		_on: function ( obj, ev, fn, capture, one ) {
+		function _on( obj, ev, fn, capture, one ) {
 			if ( arguments.length < 3 ) return;
 			//用空格 间隔 事件
 			ev = ev.match(rword);
@@ -83,10 +102,17 @@ var __event = (function () {
 				if ( obj.addEventListener ) {
 					obj.addEventListener(ev, fn, !!capture);
 				} else if ( obj.attachEvent ) {
-					obj.attachEvent('on' + ev, function ( e ){
-						var e = e || window.event
-						fn.call(obj, e)
-					});
+					if( ev === 'input' ) {
+							fn = ieInput(obj, fn);
+							ev = 'propertychange';
+							obj.attachEvent('on'+ev, fn);
+					} else {
+						obj.attachEvent('on' + ev, function ( e ){
+							var e = e || window.event
+							fn.call(obj, e)
+						});
+					}
+					
 				} else {
 					obj[ 'on' + ev ] = fn;
 				}
@@ -109,7 +135,7 @@ var __event = (function () {
 				}
 			}
 			return obj;
-		},
+		}
 		// 指定 event fn, 则销毁
 		/**
 		 * 销毁事件
@@ -123,7 +149,7 @@ var __event = (function () {
 		 * _off(obj, ev) 销毁obj绑定的 ev 事件
 		 * _off(obj, ev, fn) 销毁 obj 绑定的 ev 事件 并且 回调一致
 		 */
-		_off: function ( obj, ev, fn, capture ) {
+		function _off( obj, ev, fn, capture ) {
 			if ( !obj ) {
 				return;
 			}
@@ -132,7 +158,7 @@ var __event = (function () {
 				var ageLen = arguments.length;
 				var cache = globalCache.eventCache[ id ];
 				var removeEvent = function ( evS, ev, fn, idx ) {
-					evS.splice(idx, 1);
+					
 					if ( obj.addEventListener ) {
 						obj.removeEventListener(ev, fn);
 					} else if ( obj.detachEvent ) {
@@ -140,6 +166,7 @@ var __event = (function () {
 					} else {
 						obj[ 'on' + ev ] = null;
 					}
+					evS.splice(idx, 1);
 				}
 				var handleEvent = function ( hdlEvt, hdlFn ) {
 					var evt = hdlEvt ? cache[ hdlEvt ] : false;
@@ -149,17 +176,15 @@ var __event = (function () {
 						eLen = evt.length;
 						if ( callBackFn ) {
 							for ( var i = 0; i < eLen; i++ ) {
-								if ( evt[ i ].fn == callBackFn ) {
-									// obj.removeEventListener( hdlEvt, fn, !!capture );
-									// evt.splice( i, 1 );
+								if ( evt[ i ] && evt[ i ].fn == callBackFn ) {
 									removeEvent(evt, hdlEvt, fn, i);
 								}
 							}
 						} else if ( callBackFn === false ) {
 							for ( var i = 0; i < eLen; i++ ) {
-								// obj.removeEventListener( hdlEvt, evt[ i ], !!capture );
-								// evt.splice( i, 1 );
-								removeEvent(evt, hdlEvt, evt[ i ].fn, i);
+								// if( evt[ i ] && evt[ i ].fn ) {
+									removeEvent(evt, hdlEvt, evt[ i ].fn, i);
+								// }
 							}
 						}
 					} else {
@@ -167,8 +192,6 @@ var __event = (function () {
 							var evt = cache[ i ],
 							    eLen = evt.length;
 							for ( var j = 0; j < eLen; j++ ) {
-								// obj.removeEventListener( i, evt[ j ], !!capture );
-								// evt.splice( j, 1 );
 								removeEvent(evt, i, evt[ j ].fn, j);
 							}
 						}
@@ -179,18 +202,23 @@ var __event = (function () {
 				// 这里没有做严谨的判断
 				if ( ageLen >= 3 ) {
 					for ( var i = 0, len = ev.length; i < len; i++ ) {
-						handleEvent(ev[ i ])
+						(function (k){
+							handleEvent(ev[ k ])
+						}(i));
 					}
 				} else if ( ageLen == 2 ) {
 					for ( var i = 0, len = ev.length; i < len; i++ ) {
-						handleEvent(ev[ i ], false);
+						// handleEvent(ev[ i ], false);
+						(function (k){
+							handleEvent(ev[ k ], false)
+						}(i));
 					}
 				} else {
 					handleEvent();
 				}
 			}
 			return obj;
-		},
+		}
 		/**
 		 * 绑定, 执行一次
 		 * @param  obj     dom 对象
@@ -199,7 +227,7 @@ var __event = (function () {
 		 * @param  capture 捕获
 		 * @return 返回 dom 对象
 		 */
-		_one: function ( obj, ev, fn, capture ) {
+		function _one( obj, ev, fn, capture ) {
 			if ( !obj ) {
 				return;
 			}
@@ -209,7 +237,7 @@ var __event = (function () {
 			}
 			_on(obj, ev, proxy, capture, 'one');
 			return obj;
-		},
+		}
 		/**
 		 * 执行事件, 系统事件, 自定义事件
 		 * @param  obj  dom对象
@@ -217,7 +245,7 @@ var __event = (function () {
 		 * @param  data 传递的数据
 		 * @return 返回 dom
 		 */
-		_trigger: function ( obj, ev, data ) {
+		function _trigger( obj, ev, data ) {
 			if ( !obj || !ev ) return;
 			var sEv, i = 0, j, evt;
 			if ( typeof ev !== 'string' && _isPlainObject(ev) ) {
@@ -259,26 +287,35 @@ var __event = (function () {
 				}
 			}
 			return obj;
-		},
-		_evtStop: function ( e ) {
+		}
+		function _evtStop( e ) {
 			object._preventDefault( e );
 			object._stopPropagation( e );
-		},
-		_preventDefault: function ( e ) {
+		}
+		function _preventDefault( e ) {
 			if ( e.preventDefault ) {
 				e.preventDefault();
 			} else {
 				e.returnValue = false;
 			}
-		},
-		_stopPropagation: function ( e ) {
+		}
+		function _stopPropagation( e ) {
 			if ( e.stopPropagation ) {
 				e.stopPropagation();
 			} else {
 				e.cancelBubble = true;
 			}
 		}
+	
+
+	return {
+		_on: _on,
+		_off: _off,
+		_one: _one,
+		_trigger: _trigger,
+		_evtStop: _evtStop,
+		_preventDefault: _preventDefault,
+		_stopPropagation: _stopPropagation
 	}
-	return object;
 }());
 

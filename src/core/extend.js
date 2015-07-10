@@ -31,10 +31,10 @@ function _extend () {
 				if ( target === copy ) {
 					continue
 				}
-				if ( deep && copy && (_isPlainObject(copy) || (copyIsArray = Array.isArray(copy))) ) {
+				if ( deep && copy && (_isPlainObject(copy) || (copyIsArray = _isArray(copy))) ) {
 					if ( copyIsArray ) {
 						copyIsArray = false
-						clone = src && Array.isArray(src) ? src : []
+						clone = src && _isArray(src) ? src : []
 					} else {
 						clone = src && _isPlainObject(src) ? src : {}
 					}

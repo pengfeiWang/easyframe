@@ -32,11 +32,10 @@
 		}
 		return tmp;
 	} else {
-		if( _browser.version <= 8 ) {
-			return context.getElementsByTagName(select)
+		var tmpElems = context.getElementsByTagName(select);
+		for(var i = 0, len = tmpElems.length; i < len; i++ ) {
+			tmp.push(tmpElems[ i ]);
 		}
-		// return context.getElementsByTagName(select);
-		return slice.call( context.getElementsByTagName(select) )
-		// return ;
+		return tmp;
 	}
 }

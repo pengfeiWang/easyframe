@@ -1,7 +1,7 @@
 /*! ============================================= 
     project: easyframe  
     version: 0.1.1 
-    update: 2015-06-26 
+    update: 2015-07-10 
     author: pengfeiWang 
 ==================================================  */
 ;(function ( window, factory ) {
@@ -18,7 +18,156 @@
 	}
 }(window, function( window ) {
 	var utils = {};
+	var _ui = window._ui || (window._ui = {});
 	
+
+/* ==============================
+	js template
+	{%=it.data%}
+================================ */
+;
+var _doT = (function ( window  ) {
+/*! 
+doT.js
+2011, Laura Doktorova, https://github.com/olado/doT
+Licensed under the MIT license.
+templateSettings: {
+	evaluate:    /\{\{([\s\S]+?(\}?)+)\}\}/g,
+	interpolate: /\{\{=([\s\S]+?)\}\}/g,
+	encode:      /\{\{!([\s\S]+?)\}\}/g,
+	use:         /\{\{#([\s\S]+?)\}\}/g,
+	useParams:   /(^|[^\w$])def(?:\.|\[[\'\"])([\w$\.]+)(?:[\'\"]\])?\s*\:\s*([\w$\.]+|\"[^\"]+\"|\'[^\']+\'|\{[^\}]+\})/g,
+	define:      /\{\{##\s*([\w\.$]+)\s*(\:|=)([\s\S]+?)#\}\}/g,
+	defineParams:/^\s*([\w$]+):([\s\S]+)/,
+	conditional: /\{\{\?(\?)?\s*([\s\S]*?)\s*\}\}/g,
+	iterate:     /\{\{~\s*(?:\}\}|([\s\S]+?)\s*\:\s*([\w$]+)\s*(?:\:\s*([\w$]+))?\s*\}\})/g,
+	varname:	'it',
+	strip:		true,
+	append:		true,
+	selfcontained: false
+}
+*/
+"use strict";
+var doT = {
+	version: '1.0.1',
+	templateSettings:{evaluate:/\{\%([\s\S]+?)\%\}/g,interpolate:/\{\%=([\s\S]+?)\%\}/g,encode:/\{\%!([\s\S]+?)\%\}/g,use:/\{\%#([\s\S]+?)\%\}/g,define:/\{\%##\s*([\w\.$]+)\s*(\:|=)([\s\S]+?)#\%\}/g,conditional:/\{\%\?(\?)?\s*([\s\S]*?)\s*\%\}/g,iterate:/\{\%~\s*(?:\%\}|([\s\S]+?)\s*\:\s*([\w$]+)\s*(?:\:\s*([\w$]+))?\s*\%\})/g,varname:"it",strip:true,append:true,selfcontained:false},
+	template: undefined, //fn, compile template
+	compile:  undefined  //fn, for express
+}, global;
+/*!if (typeof module !== 'undefined' && module.exports) {
+	module.exports = doT;
+} else if (typeof define === 'function' && define.amd) {
+	define(function(){return doT;});
+} else {
+	global = (function(){ return this || (0,eval)('this'); }());
+	global.doT = doT;
+}*/
+
+function encodeHTMLSource() {
+	var encodeHTMLRules = { "&": "&#38;", "<": "&#60;", ">": "&#62;", '"': '&#34;', "'": '&#39;', "/": '&#47;' },
+		matchHTML = /&(?!#?\w+;)|<|>|"|'|\//g;
+	return function() {
+		return this ? this.replace(matchHTML, function(m) {return encodeHTMLRules[m] || m;}) : this;
+	};
+}
+String.prototype.encodeHTML = encodeHTMLSource();
+
+var startend = {
+	append: { start: "'+(",      end: ")+'",      endencode: "||'').toString().encodeHTML()+'" },
+	split:  { start: "';out+=(", end: ");out+='", endencode: "||'').toString().encodeHTML();out+='"}
+}, skip = /$^/;
+
+function resolveDefs(c, block, def) {
+	return ((typeof block === 'string') ? block : block.toString())
+	.replace(c.define || skip, function(m, code, assign, value) {
+		if (code.indexOf('def.') === 0) {
+			code = code.substring(4);
+		}
+		if (!(code in def)) {
+			if (assign === ':') {
+				if (c.defineParams) value.replace(c.defineParams, function(m, param, v) {
+					def[code] = {arg: param, text: v};
+				});
+				if (!(code in def)) def[code]= value;
+			} else {
+				new Function("def", "def['"+code+"']=" + value)(def);
+			}
+		}
+		return '';
+	})
+	.replace(c.use || skip, function(m, code) {
+		if (c.useParams) code = code.replace(c.useParams, function(m, s, d, param) {
+			if (def[d] && def[d].arg && param) {
+				var rw = (d+":"+param).replace(/'|\\/g, '_');
+				def.__exp = def.__exp || {};
+				def.__exp[rw] = def[d].text.replace(new RegExp("(^|[^\\w$])" + def[d].arg + "([^\\w$])", "g"), "$1" + param + "$2");
+				return s + "def.__exp['"+rw+"']";
+			}
+		});
+		var v = new Function("def", "return " + code)(def);
+		return v ? resolveDefs(c, v, def) : v;
+	});
+}
+
+function unescape(code) {
+	return code.replace(/\\('|\\)/g, "$1").replace(/[\r\t\n]/g, ' ');
+}
+
+doT.template = function(tmpl, c, def) {
+	c = c || doT.templateSettings;
+	var cse = c.append ? startend.append : startend.split, needhtmlencode, sid = 0, indv,
+		str  = (c.use || c.define) ? resolveDefs(c, tmpl, def || {}) : tmpl;
+
+	str = ("var out='" + (c.strip ? str.replace(/(^|\r|\n)\t* +| +\t*(\r|\n|$)/g,' ')
+				.replace(/\r|\n|\t|\/\*[\s\S]*?\*\//g,''): str)
+		.replace(/'|\\/g, '\\$&')
+		.replace(c.interpolate || skip, function(m, code) {
+			return cse.start + unescape(code) + cse.end;
+		})
+		.replace(c.encode || skip, function(m, code) {
+			needhtmlencode = true;
+			return cse.start + unescape(code) + cse.endencode;
+		})
+		.replace(c.conditional || skip, function(m, elsecase, code) {
+			return elsecase ?
+				(code ? "';}else if(" + unescape(code) + "){out+='" : "';}else{out+='") :
+				(code ? "';if(" + unescape(code) + "){out+='" : "';}out+='");
+		})
+		.replace(c.iterate || skip, function(m, iterate, vname, iname) {
+			if (!iterate) return "';} } out+='";
+			sid+=1; indv=iname || "i"+sid; iterate=unescape(iterate);
+			return "';var arr"+sid+"="+iterate+";if(arr"+sid+"){var "+vname+","+indv+"=-1,l"+sid+"=arr"+sid+".length-1;while("+indv+"<l"+sid+"){"
+				+vname+"=arr"+sid+"["+indv+"+=1];out+='";
+		})
+		.replace(c.evaluate || skip, function(m, code) {
+			return "';" + unescape(code) + "out+='";
+		})
+		+ "';return out;")
+		.replace(/\n/g, '\\n').replace(/\t/g, '\\t').replace(/\r/g, '\\r')
+		.replace(/(\s|;|\}|^|\{)out\+='';/g, '$1').replace(/\+''/g, '')
+		.replace(/(\s|;|\}|^|\{)out\+=''\+/g,'$1out+=');
+
+	if (needhtmlencode && c.selfcontained) {
+		str = "String.prototype.encodeHTML=(" + encodeHTMLSource.toString() + "());" + str;
+	}
+	try {
+		return new Function(c.varname, str);
+	} catch (e) {
+		if (typeof console !== 'undefined') console.log("Could not create a template function: " + str);
+		throw e;
+	}
+};
+doT.compile = function(tmpl, def) {
+	return doT.template(tmpl, null, def);
+};
+return doT;
+// $.doT = function ( tmpl, data ) {
+// 	if( tmpl && data ) {
+// 		return doT.template(tmpl).apply(null, [data])
+// 	}
+// }
+})(window);
+
 
 /**
  * 数组原型添加 indexOf 方法
@@ -77,7 +226,7 @@ if (!'string'.trim) {
 if ( typeof JSON !== 'object' ) {
 	JSON = {};
 }
-(function () {
+;(function () {
 	function f ( n ) {
 		return n < 10 ? '0' + n : n;
 	}
@@ -464,10 +613,10 @@ function _extend () {
 				if ( target === copy ) {
 					continue
 				}
-				if ( deep && copy && (_isPlainObject(copy) || (copyIsArray = Array.isArray(copy))) ) {
+				if ( deep && copy && (_isPlainObject(copy) || (copyIsArray = _isArray(copy))) ) {
 					if ( copyIsArray ) {
 						copyIsArray = false
-						clone = src && Array.isArray(src) ? src : []
+						clone = src && _isArray(src) ? src : []
 					} else {
 						clone = src && _isPlainObject(src) ? src : {}
 					}
@@ -593,12 +742,11 @@ var _browser;
 		}
 		return tmp;
 	} else {
-		if( _browser.version <= 8 ) {
-			return context.getElementsByTagName(select)
+		var tmpElems = context.getElementsByTagName(select);
+		for(var i = 0, len = tmpElems.length; i < len; i++ ) {
+			tmp.push(tmpElems[ i ]);
 		}
-		// return context.getElementsByTagName(select);
-		return slice.call( context.getElementsByTagName(select) )
-		// return ;
+		return tmp;
 	}
 }
 /*======================
@@ -612,9 +760,10 @@ _addClass 添加 class
 _removeClass 删除 class
 _hasClass 验证 class
  */
+
 var __class = (function () {
-	return {
-		_addClass: function ( elem, cls, fn ) {
+	
+		function _addClass( elem, cls, fn ) {
 			if ( cls && typeof cls === 'string' && elem.nodeType === 1 ) {
 				if ( !elem.className ) {
 					elem.className = cls;
@@ -632,8 +781,8 @@ var __class = (function () {
 				}
 			}
 			return elem;
-		},
-		_removeClass: function ( elem, cls, fn ) {
+		}
+		function _removeClass( elem, cls, fn ) {
 			if ( cls && typeof cls > 'o' && elem.nodeType === 1 && elem.className ) {
 				var classNames = (cls || '').match(rnospaces) || [];
 				var cl = classNames.length;
@@ -647,16 +796,133 @@ var __class = (function () {
 				}
 			}
 			return elem;
-		},
-		_hasClass: function ( elem, cls ) {
+		}
+		function _hasClass( elem, cls ) {
+			
+
+			var elemCls, nCls, reg, len, i = 0, bool;
+			if( !cls ) {
+				return false;
+			}
+			nCls = cls.match(rword).join('|');
+			reg = new RegExp("(^|\\s)(" + nCls + ")(\\s|$)");
+
+			// console.log( cls, nCls, )
 			if ( elem.nodeType === 1 && elem.className ) {
-				return (' ' + elem.className + ' ').indexOf(' ' + cls + ' ') > -1
+				elemCls = elem.className.match(rword);
+				len = elemCls.length;
+				for( ; i < len; i++ ) {
+					if( reg.test( elemCls[i] ) ) {
+						bool = true;
+						break
+					}
+				}
+				if( bool ) return bool;
+				return false;
 			}
 			return false;
 		}
+		function _classAnimate( elem, cls, callBack ) {
+			if ( !elem.nodeType || elem.nodeType !== 1 || _attr(elem, 'data-pressed') ) {
+				return;
+			}
+			var args = arguments, len = args.length;
+
+			if ( len == 2 && (typeof args[ 1 ] !== 'string' || _isFunction( args[ 1 ] )) ) {
+				callBack = args[ 1 ];
+				cls = null;
+			}
+
+			var attr = _attr(elem, 'data-animate'),
+				cls = cls || attr,
+				oldClass = _attr(elem, 'data-animate-old');
+
+			if( cls === oldClass ) {
+				return;
+			}
+
+			if( oldClass && __class._hasClass(elem, oldClass ) ) {
+				__class._removeClass(elem, oldClass );
+			}
+			
+			_attr(elem, 'data-animate-old', cls);
+			_attr(elem, 'data-pressed', 'true');
+			__class._addClass(elem, cls);
+
+			__event._one(elem, _css3Prefix.animateEnd_EV, function (){
+				_attr(elem, 'data-pressed', null);
+				callBack&&callBack.call(elem);
+			});
+		}
+	return {
+		_addClass     : _addClass,
+		_removeClass  : _removeClass,
+		_hasClass     : _hasClass,
+		_classAnimate : _classAnimate
 	}
 }());
 
+/* css3 前缀  */
+
+;var _css3Prefix = (function( win ){
+	"use strict";
+	var doc = document,
+		style = doc.documentElement.style,
+		obj = {};
+	obj.cssPrefix = (function () {
+		var items=['', 'webkit', 'Moz', 'ms', 'O' ];
+		return {
+			hasTouch         : 'ontouchstart' in window,
+			prefix           : (function (){
+				var prefix;
+				for( var j = 0; j < items.length; j++ ) {
+					if(style[ items[ j ] ? items[ j ] + 'Transform' :  'transform'] === '' ) {
+						prefix = items[ j ];
+					}
+				}
+				return prefix;
+			})()
+		};
+	})();	
+	
+	
+	obj.transEnd_EV = (function () {
+		if ( _isEmptyObject( obj.cssPrefix ) ) return false;
+
+		var transitionEnd = {
+				''		: 'transitionend',
+				'webkit': 'webkitTransitionEnd',
+				'Moz'	: 'transitionend',
+				'O'		: 'otransitionend',
+				'ms'	: 'MSTransitionEnd'
+			};
+
+		return transitionEnd[ obj.cssPrefix.prefix ];
+	})();
+	obj.animateEnd_EV = (function () {
+		if ( _isEmptyObject( obj.cssPrefix ) ) return false;
+		var animateEnd = {
+				''		: 'animationEnd',
+				'webkit': 'webkitAnimationEnd',
+				'Moz'	: 'animationend',
+				'O'		: 'oanimationend',
+				'ms'	: 'animationend'
+			};
+
+		return animateEnd[ obj.cssPrefix.prefix ];
+	})();
+	obj.touch_EV = (function () {
+		return {
+			resize_EV : 'onorientationchange' in window ? 'orientationchange' : 'resize',
+			start_EV  : obj.cssPrefix.hasTouch ? 'touchstart' : 'mousedown',
+			move_EV   : obj.cssPrefix.hasTouch ? 'touchmove' : 'mousemove',
+			end_EV    : obj.cssPrefix.hasTouch ? 'touchend' : 'mouseup',
+			cancel_EV : obj.cssPrefix.hasTouch ? 'touchcancel' : 'mouseup'
+		}
+	})();
+
+	return obj;
+}( window ));
 // css
 
 /*
@@ -901,6 +1167,26 @@ var __event = (function () {
 		}
 		return bool;
 	}
+	function  ieInput(obj, fn) {
+		return function (e){
+			var e = e || window.event;
+			if (e.propertyName.toLowerCase() == "value") {
+				if(!obj.strL) {
+					obj.strL = [];
+				}
+				if( obj.strL.length>=2 ) {
+					obj.strL.splice(0, 1, obj.strL[1]);
+					obj.strL.splice(1, 1, obj.value.length);
+				} else {
+					obj.strL.push(obj.value.length);
+				}
+				if(obj.strL.length>=2) {
+					if( obj.strL[0]==obj.strL[1] ) {return;}
+				}
+				return fn.call(obj, e);
+			}
+		} 
+	}
 	// 创建 事件
 	function createEvent ( ev/*, props */ ) {
 		// document.createEvent || document.createEventObject
@@ -931,7 +1217,6 @@ var __event = (function () {
 		}
 		return event;
 	}
-	var object = {
 		/**
 		 * 绑定事件
 		 * @param  obj     dom对象
@@ -941,7 +1226,7 @@ var __event = (function () {
 		 * @param  one     内部使用, 是否来自 one函数
 		 * @return 返回 obj
 		 */
-		_on: function ( obj, ev, fn, capture, one ) {
+		function _on( obj, ev, fn, capture, one ) {
 			if ( arguments.length < 3 ) return;
 			//用空格 间隔 事件
 			ev = ev.match(rword);
@@ -960,10 +1245,17 @@ var __event = (function () {
 				if ( obj.addEventListener ) {
 					obj.addEventListener(ev, fn, !!capture);
 				} else if ( obj.attachEvent ) {
-					obj.attachEvent('on' + ev, function ( e ){
-						var e = e || window.event
-						fn.call(obj, e)
-					});
+					if( ev === 'input' ) {
+							fn = ieInput(obj, fn);
+							ev = 'propertychange';
+							obj.attachEvent('on'+ev, fn);
+					} else {
+						obj.attachEvent('on' + ev, function ( e ){
+							var e = e || window.event
+							fn.call(obj, e)
+						});
+					}
+					
 				} else {
 					obj[ 'on' + ev ] = fn;
 				}
@@ -986,7 +1278,7 @@ var __event = (function () {
 				}
 			}
 			return obj;
-		},
+		}
 		// 指定 event fn, 则销毁
 		/**
 		 * 销毁事件
@@ -1000,7 +1292,7 @@ var __event = (function () {
 		 * _off(obj, ev) 销毁obj绑定的 ev 事件
 		 * _off(obj, ev, fn) 销毁 obj 绑定的 ev 事件 并且 回调一致
 		 */
-		_off: function ( obj, ev, fn, capture ) {
+		function _off( obj, ev, fn, capture ) {
 			if ( !obj ) {
 				return;
 			}
@@ -1009,7 +1301,7 @@ var __event = (function () {
 				var ageLen = arguments.length;
 				var cache = globalCache.eventCache[ id ];
 				var removeEvent = function ( evS, ev, fn, idx ) {
-					evS.splice(idx, 1);
+					
 					if ( obj.addEventListener ) {
 						obj.removeEventListener(ev, fn);
 					} else if ( obj.detachEvent ) {
@@ -1017,6 +1309,7 @@ var __event = (function () {
 					} else {
 						obj[ 'on' + ev ] = null;
 					}
+					evS.splice(idx, 1);
 				}
 				var handleEvent = function ( hdlEvt, hdlFn ) {
 					var evt = hdlEvt ? cache[ hdlEvt ] : false;
@@ -1026,17 +1319,15 @@ var __event = (function () {
 						eLen = evt.length;
 						if ( callBackFn ) {
 							for ( var i = 0; i < eLen; i++ ) {
-								if ( evt[ i ].fn == callBackFn ) {
-									// obj.removeEventListener( hdlEvt, fn, !!capture );
-									// evt.splice( i, 1 );
+								if ( evt[ i ] && evt[ i ].fn == callBackFn ) {
 									removeEvent(evt, hdlEvt, fn, i);
 								}
 							}
 						} else if ( callBackFn === false ) {
 							for ( var i = 0; i < eLen; i++ ) {
-								// obj.removeEventListener( hdlEvt, evt[ i ], !!capture );
-								// evt.splice( i, 1 );
-								removeEvent(evt, hdlEvt, evt[ i ].fn, i);
+								// if( evt[ i ] && evt[ i ].fn ) {
+									removeEvent(evt, hdlEvt, evt[ i ].fn, i);
+								// }
 							}
 						}
 					} else {
@@ -1044,8 +1335,6 @@ var __event = (function () {
 							var evt = cache[ i ],
 							    eLen = evt.length;
 							for ( var j = 0; j < eLen; j++ ) {
-								// obj.removeEventListener( i, evt[ j ], !!capture );
-								// evt.splice( j, 1 );
 								removeEvent(evt, i, evt[ j ].fn, j);
 							}
 						}
@@ -1056,18 +1345,23 @@ var __event = (function () {
 				// 这里没有做严谨的判断
 				if ( ageLen >= 3 ) {
 					for ( var i = 0, len = ev.length; i < len; i++ ) {
-						handleEvent(ev[ i ])
+						(function (k){
+							handleEvent(ev[ k ])
+						}(i));
 					}
 				} else if ( ageLen == 2 ) {
 					for ( var i = 0, len = ev.length; i < len; i++ ) {
-						handleEvent(ev[ i ], false);
+						// handleEvent(ev[ i ], false);
+						(function (k){
+							handleEvent(ev[ k ], false)
+						}(i));
 					}
 				} else {
 					handleEvent();
 				}
 			}
 			return obj;
-		},
+		}
 		/**
 		 * 绑定, 执行一次
 		 * @param  obj     dom 对象
@@ -1076,7 +1370,7 @@ var __event = (function () {
 		 * @param  capture 捕获
 		 * @return 返回 dom 对象
 		 */
-		_one: function ( obj, ev, fn, capture ) {
+		function _one( obj, ev, fn, capture ) {
 			if ( !obj ) {
 				return;
 			}
@@ -1086,7 +1380,7 @@ var __event = (function () {
 			}
 			_on(obj, ev, proxy, capture, 'one');
 			return obj;
-		},
+		}
 		/**
 		 * 执行事件, 系统事件, 自定义事件
 		 * @param  obj  dom对象
@@ -1094,7 +1388,7 @@ var __event = (function () {
 		 * @param  data 传递的数据
 		 * @return 返回 dom
 		 */
-		_trigger: function ( obj, ev, data ) {
+		function _trigger( obj, ev, data ) {
 			if ( !obj || !ev ) return;
 			var sEv, i = 0, j, evt;
 			if ( typeof ev !== 'string' && _isPlainObject(ev) ) {
@@ -1136,27 +1430,36 @@ var __event = (function () {
 				}
 			}
 			return obj;
-		},
-		_evtStop: function ( e ) {
+		}
+		function _evtStop( e ) {
 			object._preventDefault( e );
 			object._stopPropagation( e );
-		},
-		_preventDefault: function ( e ) {
+		}
+		function _preventDefault( e ) {
 			if ( e.preventDefault ) {
 				e.preventDefault();
 			} else {
 				e.returnValue = false;
 			}
-		},
-		_stopPropagation: function ( e ) {
+		}
+		function _stopPropagation( e ) {
 			if ( e.stopPropagation ) {
 				e.stopPropagation();
 			} else {
 				e.cancelBubble = true;
 			}
 		}
+	
+
+	return {
+		_on: _on,
+		_off: _off,
+		_one: _one,
+		_trigger: _trigger,
+		_evtStop: _evtStop,
+		_preventDefault: _preventDefault,
+		_stopPropagation: _stopPropagation
 	}
-	return object;
 }());
 
 
@@ -1834,8 +2137,645 @@ _data( obj, 'test', null)
 		}
 	}
 }());
+/* 遮罩 */
+
+/*
+// 显示遮罩
+_ui.mask()
+
+_ui.mask({
+	// 显示文本
+	tipText: '数据加载中数据加载中数据加载中数据加载中数据加载中', 
+	// 显示 加载图标
+	loading: true
+	// 自动隐藏 单位毫秒 等待多少 时间后隐藏
+	autoHide: 200
+	// 自定义样式
+	customClass: 'class1 class2'
+	// 如果显示文本 或者 加载图标 宽高设定才生效
+	width: '',
+	height: '',
+	// 显示的回调
+	showCallBack: noop,
+	// 隐藏的回调
+	hideCallBack: noop
+})
+
+// 显示
+_ui.mask.show(ops, callback)
+_ui.mask.show(callback)
+// 隐藏
+_ui.mask.hide(ops, callback)
+_ui.mask.hide(callback)
+*/
+;(function ( win ) {
+	var _ui = win._ui || (win._ui = {});
+	var globalOps = {
+		loading: false,
+		autoHide: '',
+		customClass: '',
+		width: '',
+		height: '',
+		tipText: '',
+		status: 'hide',
+		showCallBack: noop,
+		hideCallBack: noop
+	}
+	var createRoot = function ( obj ) {
+		var root = document.getElementById('mask');
+		
+		var cls = obj.customClass.match(/\S+/g) || [];
+		var len = cls.length;
+		var tmp = {};
+		if( !root ) {
+			root = document.createElement('div');
+			root.id = 'mask';
+			
+			root.className = 'mask';
+			document.documentElement.appendChild( root );
+		} else {
+			// root.className = '';
+			// root.classList.add('mask');
+			root.className = 'mask';
+		}
+		if( len ) {
+			for( var i = 0; i < len; i++ ) {
+				// root.classList.add(cls[i]);
+				__class.addClass( root, cls[i] );
+			}
+		}
+
+		root.innerHTML = '';
+		obj.root = root;
+		return createLoading( obj )		
+	};
+	var createLoading = function ( obj ) {
+
+		var str = [
+			'<div class="mask-loading">'
+			,'	<div class="mask-loading-conatiner">'
+			,'{%?it.tipText||it.loading%}'
+			,'		<div class="mask-loading-inner">'
+			,'      	<div class="mask-inner-body">'
+			,' 				{%?it.loading%}'
+			// ,'					{%?it.loading=="shouxinerLoading"%}'
+			// ,'						<div class="logo-loading-box">'
+			// ,'							<div class="wave">'
+			// ,'								<div class="inner"></div>'
+			// ,'							</div>'
+			// ,'							<div class="logo"></div>'
+			// ,'						</div>'
+			// ,'					{%??%}'
+			,'				        <div class="loading-spinner-outer">'
+			,'							<div class="loading-spinner">'
+			,'								<span class="loading-top"></span>'
+			,'								<span class="loading-right"></span>'
+			,'								<span class="loading-bottom"></span>'
+			,'								<span class="loading-left"></span>'
+			,'							</div>'
+			,'						</div>'
+			// ,'					{%?%}'
+			,' 				{%?%}'
+			,'				{%?it.tipText%}<div class="mask-tip-txt">{%=it.tipText%}</div>{%?%}'
+			,'			</div>'
+			,'		</div>'
+			,'{%?%}'
+			,'	</div>'
+			,'</div>'
+		].join('');
+
+		if( obj.loading && !obj.tipText ) {
+			obj.root.className +=' single-loading'
+		}
+
+		obj.root.innerHTML = _doT.template(str).apply(null, [obj]);
+		// //_doT(str, obj);
+		// obj.loadingElem = obj.root.querySelectorAll('.mask-loading')[0];
+		obj.loadingElem = _getElement('.mask-loading', root)[0];
+	
+
+
+		return obj;
+	};
+	var animateHide = function ( obj, callback ) {
+		var time_outer, prefix, time = obj.autoHide ? ( typeof obj.autoHide == 'number' ? obj.autoHide : parseInt(obj.autoHide, 10) ) : 0 ;
+
+		if(  (obj.loading || obj.tipText ) && obj.loadingElem ) {
+			if( _browser.msie && _browser.version <= 9 ) {
+				time_outer = setTimeout(function () {
+					var clientHeight = document.documentElement.clientHeight;
+					__animate._animate(obj.loadingElem, {
+						top: -clientHeight+'px'
+					}, 200, 'linear', function () {
+						clearTimeout( time_outer );
+						obj.root.style.display = 'none';
+						if(callback)callback();
+					});
+				}, time);
+
+			} else {
+				prefix = _css3Prefix.cssPrefix.prefix;
+				time_outer = setTimeout(function () {
+					obj.loadingElem.style[ prefix + 'TransitionDuration' ] = '300ms';
+					obj.loadingElem.style[ prefix + 'TransitionTimingFunction' ] = 'linear';
+					obj.loadingElem.style[ prefix + 'Transform' ] = 'translateY(-100%)';
+				}, time);
+
+
+				__event._one(obj.loadingElem, _css3Prefix.transEnd_EV, function () {
+					clearTimeout( time_outer );
+					obj.root.style.display = 'none';
+					if(callback)callback();
+				});	
+			}
+
+		} else {
+			obj.root.style.display = 'none';
+			if(callback)callback();
+		}
+	}
+	var show = function ( obj ) {
+		var time_outer, time = obj.autoHide ? ( typeof obj.autoHide == 'number' ? obj.autoHide : parseInt(obj.autoHide, 10) ) : 0 ;
+
+		if( !!window.getComputedStyle ) {
+			if( window.getComputedStyle(obj.root)['display'] == 'none' ) {
+				obj.root.style.display = 'block';
+			}
+		} else {
+			if( obj.root.currentStyle['display'] == 'none' ) {
+				obj.root.style.display = 'block';
+			}
+		}
+		
+		if( (obj.loading || obj.tipText ) && obj.loadingElem ) {
+
+
+
+			obj.maskInnerBody = _getElement('.mask-inner-body', obj.loadingElem)[0];
+			obj.maskLoadingInner = _getElement('.mask-loading-inner', obj.loadingElem)[0];
+			
+			if( obj.width ) {
+				_css(obj.maskLoadingInner, {width: obj.width})
+			} else {
+				_css(obj.maskLoadingInner, {
+					width: _css(obj.maskInnerBody, 'outerWidth')
+				});
+			}
+
+			if( obj.height ) {
+				_css(obj.maskLoadingInner, {width: obj.height})
+			} else {
+				_css(obj.maskLoadingInner, {
+					height: _css(obj.maskInnerBody, 'outerHeight')
+				});	
+			}
+			
+			// obj.loadingElem.style.display = 'block';
+			obj.loadingElem.style.visibility = 'visible';
+		}
+		if( obj.autoHide ) {
+			animateHide(obj, obj.showCallBack );
+		} else {
+			obj.showCallBack();
+		}
+	};
+	var hide = function ( obj ) {
+		animateHide( obj, obj.hideCallBack );
+	};
+
+	_ui.mask = function ( options ) {
+		var obj = _extend( {}, globalOps, options );
+		obj = createRoot( obj );
+		_data(obj.root, 'ui-mask', obj);
+		if( obj.status ) {
+			show( obj )
+		} else {
+			hide( obj  )
+		}
+	};
+	_ui.mask.show = function ( options, callback ) {
+		var root = document.getElementById('mask');
+		var obj = {};
+		if( !root ) {
+			obj = _extend( {}, globalOps, _isObject(options) ? options : {} );
+			obj = createRoot( obj );
+			root = obj.root;
+			_data(root, 'ui-mask', obj);
+		} else {
+			obj = _data(root, 'ui-mask'), ops = {};
+		}
+
+		if( options && callback ) {
+			obj.showCallBack = callback;
+		}
+
+		obj.status = true;
+
+		if( typeof options == 'function' ) {
+			obj.showCallBack = options;
+		} else {
+			if( options === null ) {
+				obj.loading = false;
+			} else {
+				switch ( typeof options ) {
+					case 'boolean':
+					case 'string':
+					case 'number':
+					case 'undefined':
+						obj.loading = false;
+						break;
+					case 'object':
+						obj = _extend( obj, options );
+						break;
+				}
+			}
+		}
+		ops = _extend( {}, globalOps, obj);
+		show( ops );
+	};
+	_ui.mask.hide = function ( options, callback ) {
+		var root = document.getElementById('mask');
+		var obj = {}, ops = {};
+		if( !root ) {
+			obj = _extend( {}, globalOps, _isObject(options) ? options : {} );
+			obj = createRoot( obj );
+			root = obj.root;
+			_data(root, 'ui-mask', obj);
+		} else {
+			obj = _data(root, 'ui-mask')
+		}
+
+		if( options && callback ) {
+			obj.hideCallBack = callback;
+		}
+
+		obj.status = false;
+
+		if( typeof options == 'function' && !callback ) {
+			obj.hideCallBack = options;
+		} else {
+			if( options === null ) {
+				obj.loading = false;
+			} else {
+				switch ( typeof options ) {
+					case 'boolean':
+					case 'string':
+					case 'number':
+					case 'undefined':
+						obj.loading = false;
+						break;
+					case 'object':
+						obj = _extend( obj, options );
+						break;
+				}
+			}
+		}
+		ops = _extend( {}, globalOps, obj );
+		animateHide( ops, obj.hideCallBack );
+	}
+}(window));
+/* 消息通知 弹窗*/
+
+;(function ( win ) {
+	var _ui = win._ui || (win._ui = {});
+	var css3Animate = ((_browser.msie && _browser.version >= 10) || _browser.webkit || _browser.mozilla);
+	var elem = {
+		root: null,
+		container: null,
+		content: null,
+		bodyBox: null,
+		titleBox: null,
+		msgBox: null,
+		okBtn: null,
+		cancelBtn: null
+	};
+	var globalOps = {
+		title: '提示信息',
+		msg: '消息提示',
+		type: 'alert',
+		txt: {
+			okTxt: '确认',
+			cancelTxt: '取消'
+		},
+		elem: elem,
+		customClass: {
+			userClass: '',
+			okClass: '',
+			cancelClass: '',
+			showAnimateClass: 'bounce-in',
+			hideAnimateClass: 'bounce-out'
+		},
+		maskClass:'',
+		callBack: {
+			preInput: noop,
+			okFn: noop,
+			cancelFn: noop
+		}
+	};
+	var bool = {
+		cancelBool: false,
+		okBool: true
+	},
+	
+	callBackAll = function ( obj ) {
+		if ( obj.callBack.okFn ) {
+			obj.callBack.okFn.call( obj.elem );
+		}
+		if ( obj.callBack.cancelFn ) {
+			obj.callBack.cancelFn.call( obj.elem );
+		}
+	},
+	createRoot = function ( ops ) {
+		var root  = document.getElementById('msgbox');
+		
+		var cls, len = 0, i = 0;
+
+
+		var container
+		var content
+		if ( !root ) {
+			var tmpEle = document.createElement('div');
+			//创建msgbox根节点
+			root = tmpEle.cloneNode(false);
+			root.id = 'msgbox';
+			root.style.zIndex = 9999;
+			// root.classList.add('msgbox');
+			root.className = 'msgbox';
+			//创建根容器
+			container = tmpEle.cloneNode(false);
+			// container.classList.add('msgbox-container');
+			container.className = 'msgbox-container'
+
+			
+			//创建内容容器
+			content = tmpEle.cloneNode(false);
+			// content.classList.add('msgbox-content');
+			content.className = 'msgbox-content';
+
+			root.appendChild(container);
+			container.appendChild(content);
+
+			document.documentElement.appendChild(root);
+		} else {
+
+			// container = root.querySelectorAll('.msgbox-container')[0];
+			// content = root.querySelectorAll('.msgbox-content')[0];
+
+			container = _getElement('.msgbox-container', root)[0];
+			content = _getElement('.msgbox-content', root)[0];
+
+		}
+		root.className = 'msgbox';
+		// root.classList.add('msgbox')
+		
+		if( ops.customClass.userClass ) {
+
+			cls = ops.customClass.userClass.match(/\S+/g) || [];
+			len = cls.length;
+
+			for( ; i < len; i++ ) {
+				root.className += ' '+cls[i];
+			}
+			// root.className = '';
+			// root.classList.add('msgbox')
+			// root.classList.add(ops.customClass.userClass)
+		}
+		elem.root      = root;
+		elem.container = container;
+		elem.content   = content;
+		return elem;
+	},
+	windowBoxHander = function ( obj ) {
+		show( obj );
+		
+		if ( obj.elem.okBtn ) {
+			__event._one(obj.elem.okBtn, 'click', function ( e ) {
+				__event._stopPropagation(e);
+				hide( obj, true );
+			});
+		}
+		if ( obj.elem.cancelBtn ) {
+			__event._one(obj.elem.cancelBtn, 'click', function ( e ) {
+				__event._stopPropagation(e);
+				hide( obj, false );
+			});				
+		}
+	},
+	show = function ( obj, bool ) {
+
+		if( _css(obj.elem.root, 'display') === 'none' ) {
+			_ui.mask.show(function () {
+				obj.elem.root.style.display = 'block';
+				obj.elem.content.style.height = obj.elem.titleBox.offsetHeight+obj.elem.msgBox.offsetHeight+obj.elem.btnBox.offsetHeight+'px';
+				if( css3Animate && obj.customClass.showAnimateClass ) {
+					__class._classAnimate(obj.elem.root, obj.customClass.showAnimateClass, function (){
+						__class._removeClass(obj.elem.root, obj.customClass.showAnimateClass);
+					});
+				}
+			});
+		}
+		if( obj.callBack.preInput ) {
+			obj.callBack.preInput.call( obj.elem );
+		}
+	},
+	hide = function ( obj, bool ) {
+		if( _css(obj.elem.root, 'display') !== 'none' ) {			
+			if( css3Animate && obj.customClass.hideAnimateClass ) {
+				__class._classAnimate(obj.elem.root, obj.customClass.hideAnimateClass, function (){
+					obj.elem.root.style.display = 'none';
+					if( bool === true ) {
+						_ui.mask.hide(function () {
+							if ( obj.callBack.okFn ) {
+								obj.callBack.okFn.call( obj.elem );
+							}
+						});
+					} else if ( bool === false ) {
+						_ui.mask.hide(function () {
+							if ( obj.callBack.cancelFn ) {
+								obj.callBack.cancelFn.call( obj.elem );
+							}
+						});
+					} else {
+						_ui.mask.hide();
+					}
+					__class._removeClass(this, obj.customClass.hideAnimateClass);
+				});
+			} else {
+				_ui.mask.hide(function () {
+					obj.elem.root.style.display = 'none';
+					if( bool === true ) {
+						if ( obj.callBack.okFn ) {
+							obj.callBack.okFn.call( obj.elem );
+						}
+					} else if ( bool === false ) {
+						if ( obj.callBack.cancelFn ) {
+							obj.callBack.cancelFn.call( obj.elem );
+						}
+					} else {
+						_ui.mask.hide()
+					}
+				});
+			}
+		}
+	},
+	insertHTML = function ( obj ) {
+		obj.bool = bool;
+		var str = [
+			'<div class="msgbox-body">'
+			,' <span class="inner-bg">'
+			,' 	<span class="inner"><span class="inner2"></span></span>'
+			,' </span>'
+			,' <div class="msgbox-body-inner">'
+			,'		<div class="msgbox-title">'
+			,'			<span class="msg-title-txt">{%=it.title%}</span>'
+			,'		</div>'
+			,'		<div class="msgbox-msg">'
+			,'			{%=it.msg%}'
+			,'		</div>'
+			,'		<div class="msgbox-buttons">'
+			,'			{%?it.bool.cancelBool%}'
+			,'				<button type="buttom" data-msgbox-btn="cancel" class="btn btn-sm btn-default {%?it.customClass.cancelClass%}{%=it.customClass.cancelClass%}{%?%}">{%=it.txt.cancelTxt%}</button>'
+			,'			{%?%}'
+			,'			{%?it.bool.okBool%}'
+			,'				<button type="buttom" data-msgbox-btn="ok" class="btn btn-sm btn-warning {%?it.customClass.okClass%}{%=it.customClass.okClass%}{%?%}">'
+			,'					<span class="btn-txt">{%=it.txt.okTxt%}</span>'
+			,'					<div class="loading-spinner-outer">'
+			,'						<div class="loading-spinner">'
+			,'							<span class="loading-top"></span>'
+			,'							<span class="loading-right"></span>'
+			,'							<span class="loading-bottom"></span>'
+			,'							<span class="loading-left"></span>'
+			,'						</div>'
+			,'					</div>'
+			,'				</button>'
+			,'			{%?%}'
+			,'		</div>'
+			,'	</div>'
+			,'</div>'
+		].join('');
+
+		// obj.elem.content.innerHTML = $.doT(str, obj);
+		obj.elem.content.innerHTML = _doT.template(str).apply(null,[obj]);
+
+		// obj.elem.bodyBox = obj.elem.content.querySelectorAll('.msgbox-body')[0];
+		obj.elem.bodyBox = _getElement('.msgbox-body', obj.elem.content)[0];
+
+
+		// obj.elem.titleBox = obj.elem.content.querySelectorAll('.msgbox-title')[0];
+		obj.elem.titleBox = _getElement('.msgbox-title', obj.elem.content)[0];
+
+		// obj.elem.msgBox = obj.elem.content.querySelectorAll('.msgbox-msg')[0];
+		obj.elem.msgBox = _getElement('.msgbox-msg', obj.elem.content)[0];
+
+		// var button = obj.elem.content.querySelectorAll('.msgbox-buttons')[0].getElementsByTagName('button');
+		obj.elem.btnBox = _getElement('.msgbox-buttons', obj.elem.content)[0];
+
+		var button = obj.elem.btnBox.getElementsByTagName('button');
+
+		for( var i = 0, len = button.length; i < len; i++ ) {
+			var attr = button[ i ].getAttribute('data-msgbox-btn');
+			if( attr ) {
+				if( attr == 'ok' ) {
+					obj.elem.okBtn = button[ i ];
+				}
+				if( attr == 'cancel' ) {
+					obj.elem.cancelBtn = button[ i ];
+				}
+			}
+		}
+		delete obj.bool;
+		return obj;
+	},
+	containerEvt = function ( obj ) {
+		var evStart = _css3Prefix.touch_EV.start_EV;
+		var evEnd = _css3Prefix.touch_EV.end_EV;
+		__event._one(obj.elem.container, evStart, function ( e ) {
+			if ( e.target == obj.elem.container ) {
+				__class._addClass(obj.elem.root, 'txt-select-off');
+			}
+		});
+		__event._one(obj.elem.container, evEnd, function ( e ) {
+			__class._removeClass(obj.elem.root, 'txt-select-off');
+
+			if ( e.target == obj.elem.container ) {
+				hide( obj );
+				if( obj.callBack.cancelFn ) {
+					obj.callBack.cancelFn.call( obj.elem );
+				}
+			}
+		});
+		var keyEventFn = function ( e ) {
+			if( e.keyCode === 27 ) {
+				__class._removeClass(obj.elem.root, 'txt-select-off');
+				hide( obj );
+				if( obj.callBack.cancelFn ) {
+					obj.callBack.cancelFn.call( obj.elem );
+				}
+				keyEvent( true )
+			}
+		}
+		var keyEvent = function ( arg ) {
+			var winTop = window.top;
+			var allIfr = winTop.document.getElementsByTagName('iframe');
+			var len = allIfr.length;
+			var i = 0;
+			if( arg ) {
+				if( len ) {
+					for( ; i < len; i++ ) {
+						__event._off( allIfr[ i ].contentWindow, 'keyup', keyEventFn);
+					}
+					__event._off( window, 'keyup', keyEventFn);
+				} else {
+					__event._off( window, 'keyup', keyEventFn);
+				}
+			} else {
+				if( len ) {
+					for( ; i < len; i++ ) {
+						__event._on( allIfr[ i ].contentWindow, 'keyup', keyEventFn);
+					}
+					__event._on( window, 'keyup', keyEventFn);
+				} else {
+					__event._on( window, 'keyup', keyEventFn);
+				}
+			}
+
+		}
+		keyEvent();
+	};
+	function msgHide() { 
+		if(!elem.root) return;
+		elem.root.style.display = 'none';
+		_ui.mask.hide();
+	}
+	_ui.msgbox = function ( options ) {
+
+		var options = _extend(!0, {}, globalOps, options );
+
+		options.elem = createRoot( options );
+
+		// containerEvt( options );
+
+		if( options.type == 'alert' ) {
+
+			bool.cancelBool = false;
+			bool.okBool = true;
+
+			windowBoxHander( insertHTML( options ) );
+
+		} else if ( options.type == 'confirm' ) {
+
+			bool.cancelBool = true;
+			bool.okBool = true;
+
+			windowBoxHander( insertHTML( options ) );
+		}
+		containerEvt( options );
+	};
+	_ui.msgbox.hide = msgHide;
+}( window ));
 utils =  {
 	globalCache : globalCache
+	,doT              : _doT
 	,browser          : _browser
 	,isArray          : _isArray
 	,isFunction       : _isFunction
@@ -1849,10 +2789,8 @@ utils =  {
 	,extend           : _extend
 	,getEle           : _getElement
 	,getElement       : _getElement
-	,css              : _css
-	,hasClass         : __class._hasClass
-	,addClass         : __class._addClass
-	,removeClass      : __class._removeClass
+	,css3Prefix       : _css3Prefix
+
 	,on               : __event._on
 	,off              : __event._off
 	,one              : __event._one
@@ -1860,6 +2798,14 @@ utils =  {
 	,eventStop        : __event._evtStop
 	,preventDefault   : __event._preventDefault
 	,stopPropagation  : __event._stopPropagation
+
+	,attr             : _attr
+	,data             : _data
+	,css              : _css
+	,hasClass         : __class._hasClass
+	,addClass         : __class._addClass
+	,removeClass      : __class._removeClass
+	,_classAnimate    : __class._classAnimate
 	,getField         : _getField
 	,serialize        : _serialize
 	,ajax             : _ajax
@@ -1867,8 +2813,8 @@ utils =  {
 	,get              : _get
 	,animate          : __animate._animate
 	,stop             : __animate._stop
-	,attr             : _attr
-	,data             : _data
+	
+	,ui               : window._ui
 }
 window.utils = utils;
 return utils;

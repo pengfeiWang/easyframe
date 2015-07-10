@@ -30,6 +30,7 @@ module.exports = function (grunt) {
 				files: {
 					"./dist/<%= pkg.name %>.js": [
 						'src/open.js'
+						,'src/dot/dot.js'
 						//原型扩展方法
 						,'src/core/sys_ext_method.js'
 						//正则
@@ -52,6 +53,8 @@ module.exports = function (grunt) {
 						,'src/selector/selector.js'
 						//class
 						,'src/class/class.js'
+						//css3Prefix
+						,'src/css/css3-prefix.js'
 						//css
 						,'src/css/css.js'
 						//事件系统
@@ -66,6 +69,11 @@ module.exports = function (grunt) {
 						,'src/attr/attr.js'
 						//自定义数据
 						,'src/data/data.js'
+						// ui 部分, 绑定到 window._ui
+						// 遮罩
+						,'src/ui/mask.js'
+						// 遮罩
+						,'src/ui/msgbox.js'
 						//对外api
 						,'src/api.js'
 						,'src/close.js'

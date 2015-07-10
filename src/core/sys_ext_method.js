@@ -55,7 +55,7 @@ if (!'string'.trim) {
 if ( typeof JSON !== 'object' ) {
 	JSON = {};
 }
-(function () {
+;(function () {
 	function f ( n ) {
 		return n < 10 ? '0' + n : n;
 	}
