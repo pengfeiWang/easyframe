@@ -1,19 +1,3 @@
-// css
-
-/*
-设置 获取 样式
-_css( obj, 'attr' ) 
-返回obj.style[attr]
-
-_css( obj, 'attr', 'val')
-设置obj.style[attr] = val
-返回 obj
-
-_css( obj, {width:100px, height: 200px})
-设置obj.style, width height
-返回obj
-*/
-;
 var _css = (function () {
 	"use strict";
 	var rnocame = /[^_-]/;
@@ -37,7 +21,20 @@ var _css = (function () {
 		}
 		return name
 	}
-	
+	var cssNumber = {
+		'columncount': !0,
+		'fontweight': !0,
+		'lineheight': !0,
+		'column-count': !0,
+		'font-weight': !0,
+		'line-height': !0,
+		'opacity': !0,
+		'orphans': !0,
+		'widows': !0,
+		'zIndex': !0,
+		'z-index': !0,
+		'zoom': !0
+	};
 
 
 	var getBounding = function ( node ) {
@@ -60,75 +57,21 @@ var _css = (function () {
 	 * @return 
 	 */
 	var setStyle = function ( obj, attr, value ) {
-		var tmpNum = 0;
-
-		if( attr === 'opacity' ) {
-			if( window.getComputedStyle ) {
-				obj.style[attr] = value > 1 ? value /100 : value
-			} else {
-				setOpacity(obj, value);
-			}
-			
+		if( attr === 'opacity' && !window.getComputedStyle ) {
+			setOpacity(obj, value);
 		} else {
-			// value 有可能是负值, ie8 以下的版本需要处理, 用当前元素值 + 负值, 得到正常值
-			if( value < 0 && _browser.version <= 8 && /^(width|height)$/i.test(attr) ) {
-				tmpNum = parseFloat( _css( obj, attr ) );
-				value +=  isNaN( tmpNum ) ? 0 : tmpNum ;
-			}
 			obj.style[attr] = addPx(attr, value);
 		}
 	};
 	var rGet = /^(opacity|outerWidth|outerHeight)$/;
-
-	var ret, style;
-	var addPx = function ( attr, val ) {
-		return (typeof(val) === 'number') && !cssNumber[ attr.toLowerCase() ] ? val + 'px' : val;
-	};
-
-	function getOpacity ( node ) {
-		var alpha, op;
-		if( window.getComputedStyle ) {
-			op = window.getComputedStyle( node, null)['opacity'];
-		} else {
-			alpha = node.filters.alpha || node.filters[salpha];
-			op = alpha && alpha.enabled ? alpha.opacity : 100;
-			op = (op / 100) + '';//确保返回的是字符串
-		}
-		return op 
-	};
-	function setOpacity ( node, val ) {
-		var style = node.style
-		var opacity = isFinite(val) && val <= 1 ? 'alpha(opacity=' + val * 100 + ')' : ''
-		var filter = style.filter || '';
-		style.zoom = 1;
-		style.filter = (ralpha.test(filter) ?
-			filter.replace(ralpha, opacity) :
-			filter + ' ' + opacity).trim()
-		if (!style.filter) {
-			style.removeAttribute('filter');
-		}
-	};
-	var rnumnonpx = /^-?(?:\d*\.)?\d+(?!px)[^\d\s]+$/i
-	var rposition = /^(top|right|bottom|left)$/
-	var ralpha = /alpha\([^)]*\)/i
-	var ie8 = !! window.XDomainRequest
-	var salpha = 'DXImageTransform.Microsoft.Alpha';
-	var border = {
-		thin: ie8 ? '1px' : '2px',
-		medium: ie8 ? '3px' : '4px',
-		thick: ie8 ? '5px' : '6px'
-	}
 	var getMaps = {
 		opacity:  getOpacity,
 		outerWidth: outerWidth,
 		outerHeight: outerHeight
 	}
-	function getStyle ( obj, attr ) {
-		if( rGet.test(attr) ) {
-			return getMaps[attr](obj);
-		}
-			
-		if( window.getComputedStyle ) {
+	var getStyle, getOpacity, setOpacity, ret, style;
+	if (window.getComputedStyle) {
+		getStyle = function ( obj, attr ) {
 			style = getComputedStyle(obj, null);
 			if (style) {
 				ret = attr === 'filter' ? style.getPropertyValue(attr) : style[attr]
@@ -137,8 +80,22 @@ var _css = (function () {
 				}
 			}
 			return ret
-		} else {
-			
+		}
+	} else {
+		var rnumnonpx = /^-?(?:\d*\.)?\d+(?!px)[^\d\s]+$/i
+		var rposition = /^(top|right|bottom|left)$/
+		var ralpha = /alpha\([^)]*\)/i
+		var ie8 = !! window.XDomainRequest
+		var salpha = 'DXImageTransform.Microsoft.Alpha';
+		var border = {
+			thin: ie8 ? '1px' : '2px',
+			medium: ie8 ? '3px' : '4px',
+			thick: ie8 ? '5px' : '6px'
+		}
+		getStyle = function ( obj, attr ) {
+			if( rGet.test(attr) ) {
+				return getMaps[attr](obj);
+			}
 			var currentStyle = obj.currentStyle
 			ret = currentStyle[attr];
 			// 非 px 单位 ,  非 left 等
@@ -170,11 +127,30 @@ var _css = (function () {
 				ret = getMaps['outer' + firstUpperCase(attr) ](obj)
 			} 
 
-			return  border[ret] || ret;				
-		}
+			return  border[ret] || ret;
+		};
+		getOpacity = function( node ) {
+			//这是最快的获取IE透明值的方式，不需要动用正则了！
+			var alpha = node.filters.alpha || node.filters[salpha],
+				op = alpha && alpha.enabled ? alpha.opacity : 100
+			return (op / 100) + '' //确保返回的是字符串
+		};
+		setOpacity = function ( node, val ) {
+			var style = node.style
+			var opacity = isFinite(val) && val <= 1 ? 'alpha(opacity=' + val * 100 + ')' : ''
+			var filter = style.filter || '';
+			style.zoom = 1;
+			style.filter = (ralpha.test(filter) ?
+				filter.replace(ralpha, opacity) :
+				filter + ' ' + opacity).trim()
+			if (!style.filter) {
+				style.removeAttribute('filter');
+			}
+		};
 	}
-	
-
+	var addPx = function ( attr, val ) {
+		return (typeof(val) === 'number') && !cssNumber[ attr.toLowerCase() ] ? val + 'px' : val;
+	};
 
 	/**
 	 * 设置 获取 css 样式
@@ -190,28 +166,22 @@ var _css = (function () {
 		// 先做 是否css3属性验证;
 		var prop;
 		var i;
-		// typeof ops === 'string'
-		// value 目标值
-		// 设置
-		if(typeof ops === 'string' && value ) {
+		if( value ) {
+
 			setStyle(elem, cssName(ops), value);
 			return elem;
 		}
-
-		if( ops ) { //设置 || 获取
+		if( ops ) { //设置
 			if( typeof ops === 'string' ) { // ops如果是字符串把它当成要获取的属性
 				return getStyle(elem, cssName(ops));
 			}
-			// 设置属性值
 			for( i in ops ) {
 				setStyle(elem, cssName(i), ops[i]);
 			}
 			return elem;
-		} 
-		//else { //获取
-			// return getStyle(elem, cssName(ops));
-		// }
-		// console.log( 'css---' )
+		} else { //获取
+			return getStyle(elem, cssName(ops));
+		}
 		return elem;
 	}
 })();

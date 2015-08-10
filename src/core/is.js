@@ -1,15 +1,13 @@
-// var _isFunction = typeof alert === 'object' ? function ( fn ) {
-// 	try {
-// 		return /^\s*\bfunction\b/.test(fn + "")
-// 	} catch ( e ) {
-// 		return false
-// 	}
-// } : function ( fn ) {
-// 	return oToString.call(fn) === '[object Function]'
-// }
-function _isFunction ( fn ) {
+var _isFunction = typeof alert === 'object' ? function ( fn ) {
+	try {
+		return /^\s*\bfunction\b/.test(fn + "")
+	} catch ( e ) {
+		return false
+	}
+} : function ( fn ) {
 	return oToString.call(fn) === '[object Function]'
 }
+
 function _isWindow ( obj ) {
 	if ( !obj )
 		return false

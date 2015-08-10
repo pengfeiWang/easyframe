@@ -11,6 +11,5 @@
 		factory( window );
 	}
 }(window, function( window ) {
-	var utils = {};
-	var _ui = window._ui || (window._ui = {});
+	var utils;
 	

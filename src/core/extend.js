@@ -1,4 +1,4 @@
-//偷jQuery.extend方法，可用于浅拷贝，深拷贝
+//与jQuery.extend方法，可用于浅拷贝，深拷贝
 function _extend () {
 	var options, name, src, copy, copyIsArray, clone,
 		target = arguments[ 0 ] || {},
@@ -15,7 +15,7 @@ function _extend () {
 	if ( typeof target !== 'object' && _getType(target) !== 'function' ) {
 		target = {}
 	}
-	//如果只有一个参数立即返回
+	//如果只有一个参数，那么新成员添加于mix所在的对象上
 	if ( i === length ) {
 		return target;
 		// target = this
@@ -31,10 +31,10 @@ function _extend () {
 				if ( target === copy ) {
 					continue
 				}
-				if ( deep && copy && (_isPlainObject(copy) || (copyIsArray = _isArray(copy))) ) {
+				if ( deep && copy && (_isPlainObject(copy) || (copyIsArray = Array.isArray(copy))) ) {
 					if ( copyIsArray ) {
 						copyIsArray = false
-						clone = src && _isArray(src) ? src : []
+						clone = src && Array.isArray(src) ? src : []
 					} else {
 						clone = src && _isPlainObject(src) ? src : {}
 					}

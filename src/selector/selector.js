@@ -6,8 +6,12 @@
  * @param context
  * @returns elements || nodeElement
  */
+// var _getElement = (funcion (){
 
-// 
+// 	return function () {
+
+// 	}
+// })();
 ;function _getElement ( select, context ) {
 	if ( !select )  return;
 	if( select == 'body' ) {
@@ -32,10 +36,6 @@
 		}
 		return tmp;
 	} else {
-		var tmpElems = context.getElementsByTagName(select);
-		for(var i = 0, len = tmpElems.length; i < len; i++ ) {
-			tmp.push(tmpElems[ i ]);
-		}
-		return tmp;
+		return context.getElementsByTagName(select);
 	}
 }

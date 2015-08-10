@@ -27,54 +27,26 @@ module.exports = function (grunt) {
 		},
 		concat: {
 			"easyframe": {
+				
 				files: {
+
+
 					"./dist/<%= pkg.name %>.js": [
 						'src/open.js'
-						,'src/dot/dot.js'
-						//原型扩展方法
-						,'src/core/sys_ext_method.js'
-						//正则
 						,'src/core/regexp.js'
-						//缓存
-						,'src/core/cache.js'
+						,'src/core/object.js'
 						,'src/core/class2type.js'
-						
-						//数组去重
+						,'src/core/sys_ext_method.js'
 						,'src/core/arrunique.js'
-						//各种判断函数
 						,'src/core/is.js'
-						//扩展方法
 						,'src/core/extend.js'
-						//循环
 						,'src/core/each.js'
-						//userAgent
+
 						,'src/browser/browser.js'
-						//选择器
 						,'src/selector/selector.js'
-						//class
 						,'src/class/class.js'
-						//css3Prefix
-						,'src/css/css3-prefix.js'
-						//css
 						,'src/css/css.js'
-						//事件系统
 						,'src/event/event.js'
-						//ajax
-						,'src/ajax/get_field.js'
-						,'src/ajax/serialize.js'
-						,'src/ajax/ajax.js'
-						//动画系统
-						,'src/animate/animate.js'
-						//自定义属性操作
-						,'src/attr/attr.js'
-						//自定义数据
-						,'src/data/data.js'
-						// ui 部分, 绑定到 window._ui
-						// 遮罩
-						,'src/ui/mask.js'
-						// 遮罩
-						,'src/ui/msgbox.js'
-						//对外api
 						,'src/api.js'
 						,'src/close.js'
 					]

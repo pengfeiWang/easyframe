@@ -3,30 +3,8 @@ var rword = /[^, ]+/g,
 	rwindow = /^\[object (?:Window|DOMWindow|global)\]$/,
 	doc = document,
 	root = doc.documentElement,
-	W3C = window.dispatchEvent,
-	oproto = Object.prototype,
-	oToString = oproto.toString,
-	ohasOwn = oproto.hasOwnProperty,
-	emptyArray   = [],
-	indexOf      = emptyArray.indexOf,
-	slice        = emptyArray.slice,
-	splice       = emptyArray.splice,
-	concat       = emptyArray.concat,
-	cssNumber = {
-		'columncount': !0,
-		'fontweight': !0,
-		'lineheight': !0,
-		'column-count': !0,
-		'font-weight': !0,
-		'line-height': !0,
-		'opacity': !0,
-		'orphans': !0,
-		'widows': !0,
-		'zindex': !0,
-		'z-index': !0,
-		'zoom': !0
-	};
-	function noop() {}
+	W3C = window.dispatchEvent;
+
 	/**
 	 * [regWordBorder 单词边距正则]
 	 * @param  string
